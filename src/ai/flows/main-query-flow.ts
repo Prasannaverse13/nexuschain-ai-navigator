@@ -20,6 +20,8 @@ import { forecastDemand } from './demand-forecasting';
 import { DemandForecastingInputSchema, DemandForecastingOutputSchema } from '../schemas/demand-forecasting.schema';
 import { procurementSuggestion } from './procurement-suggestion';
 import { ProcurementSuggestionInputSchema, ProcurementSuggestionOutputSchema } from '../schemas/procurement-suggestion.schema';
+import { planRoute } from './logistics';
+import { LogisticsInputSchema, LogisticsOutputSchema } from '../schemas/logistics.schema';
 
 
 // Schemas for the Main Orchestrator Flow
@@ -82,7 +84,17 @@ const procurementSuggestionTool = ai.defineTool(
     async (input) => procurementSuggestion(input)
 );
 
-const allTools = [anomalyDetectionTool, demandForecastingTool, procurementSuggestionTool];
+const logisticsTool = ai.defineTool(
+    {
+        name: 'planRoute',
+        description: 'Plans an optimal delivery route for a shipment, considering factors like weather and traffic.',
+        inputSchema: LogisticsInputSchema,
+        outputSchema: LogisticsOutputSchema
+    },
+    async (input) => planRoute(input)
+);
+
+const allTools = [anomalyDetectionTool, demandForecastingTool, procurementSuggestionTool, logisticsTool];
 
 // Main Orchestrator Flow
 export async function mainQuery(input: MainQueryInput): Promise<MainQueryOutput> {
@@ -110,7 +122,7 @@ const mainQueryFlow = ai.defineFlow(
             *   \`recommendations\`: A list of key, actionable recommendations.
             *   \`workflow\`: A step-by-step log of the tools you called. For each tool call, create a workflow step object.
                 *   You must invent realistic but concise details for the 'action' and 'details' fields based on the tool's input and output.
-                *   You MUST use the correct icon for each agent: 'AlertTriangle' for detectAnomaly, 'BarChartBig' for forecastDemand, and 'ShoppingCart' for procurementSuggestion.
+                *   You MUST use the correct icon for each agent: 'AlertTriangle' for detectAnomaly, 'BarChartBig' for forecastDemand, 'ShoppingCart' for procurementSuggestion, and 'Truck' for planRoute.
         
         Do not invent information that cannot be derived from the tool outputs. Your primary job is to orchestrate, analyze, and present the findings of your agent tools.`,
         tools: allTools,
