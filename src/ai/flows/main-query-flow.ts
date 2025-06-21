@@ -46,7 +46,7 @@ const RecommendationSchema = z.object({
 });
 
 const MainQueryOutputSchema = z.object({
-  summary: z.string().describe("A concise, high-level summary paragraph that directly answers the user's query."),
+  summary: z.string().describe("A concise, high-level summary that directly answers the user's query."),
   recommendations: z.array(RecommendationSchema).describe("A list of key, actionable recommendations, each with a potential follow-up action."),
   workflow: z.array(WorkflowStepSchema).describe("The sequence of agent steps that were executed to produce the result. The sequence should be logical."),
 });
@@ -114,17 +114,17 @@ const mainQueryFlow = ai.defineFlow(
         User Query: "${input.query}"
         
         Based on the user's query, you must:
-        1.  **Analyze the query** to determine what information is needed. For forecasting, this means retrieving historical data. For anomaly detection, it means checking data streams.
-        2.  **Call the necessary tools** in a logical sequence to gather the required data. You can call multiple tools if needed.
-        3.  **Synthesize the results** from the tools into a coherent analysis.
+        1.  **Analyze the query** to understand the user's full intent. Think step-by-step.
+        2.  **Call the necessary tools in a logical sequence** to gather all required information. You can and should call multiple tools if needed to fully address the user's request. For example, if a user asks about the impact of a price change, you should first call 'detectAnomaly' to confirm the change, then you might call 'forecastDemand' to see how it affects sales, and finally call 'procurementSuggestion' to recommend actions.
+        3.  **Synthesize the results** from all the tools you called into a coherent analysis.
         4.  **Generate a final response in JSON format** that strictly adheres to the provided schema. The JSON response must include:
-            *   \`summary\`: A concise, high-level summary that directly answers the user's query based on the tool outputs.
-            *   \`recommendations\`: A list of key, actionable recommendations.
-            *   \`workflow\`: A step-by-step log of the tools you called. For each tool call, create a workflow step object.
+            *   \`summary\`: A concise, high-level summary that directly answers the user's query based on the collective tool outputs.
+            *   \`recommendations\`: A list of key, actionable recommendations derived from your complete analysis.
+            *   \`workflow\`: A step-by-step log of every tool you called in the correct order. For each tool call, create a workflow step object.
                 *   You must invent realistic but concise details for the 'action' and 'details' fields based on the tool's input and output. For data retrieval steps, explicitly mention the source (e.g., 'Retrieved historical data from BigQuery').
                 *   You MUST use the correct icon for each agent: 'AlertTriangle' for detectAnomaly, 'BarChartBig' for forecastDemand, 'ShoppingCart' for procurementSuggestion, and 'Truck' for planRoute.
         
-        Do not invent information that cannot be derived from the tool outputs. Your primary job is to orchestrate, analyze, and present the findings of your agent tools.`,
+        Your primary job is to orchestrate, analyze, and present the findings of your agent tools. Do not just use one tool if the query implies a multi-step problem.`,
         tools: allTools,
         output: {
             schema: MainQueryOutputSchema,
