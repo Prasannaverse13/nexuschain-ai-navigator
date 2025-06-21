@@ -3,7 +3,7 @@
  * @fileOverview A central orchestrator flow for NexusChain AI.
  *
  * This flow takes a high-level user query, determines the necessary agent actions,
- * simulates their execution with advanced analysis, and returns a comprehensive result
+ * orchestrates their execution by calling them as tools, and returns a comprehensive result
  * including a summary, actionable recommendations, and a detailed workflow breakdown.
  *
  * - mainQuery - The primary function that processes a user's goal.
@@ -14,6 +14,15 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+import { detectAnomaly } from './anomaly-detection';
+import { AnomalyDetectionInputSchema, AnomalyDetectionOutputSchema } from '../schemas/anomaly-detection.schema';
+import { forecastDemand } from './demand-forecasting';
+import { DemandForecastingInputSchema, DemandForecastingOutputSchema } from '../schemas/demand-forecasting.schema';
+import { procurementSuggestion } from './procurement-suggestion';
+import { ProcurementSuggestionInputSchema, ProcurementSuggestionOutputSchema } from '../schemas/procurement-suggestion.schema';
+
+
+// Schemas for the Main Orchestrator Flow
 const MainQueryInputSchema = z.object({
   query: z.string().describe('A high-level user query or goal for the supply chain.'),
 });
@@ -42,67 +51,43 @@ const MainQueryOutputSchema = z.object({
 export type MainQueryOutput = z.infer<typeof MainQueryOutputSchema>;
 
 
+// Define Agent Tools
+const anomalyDetectionTool = ai.defineTool(
+    {
+        name: 'detectAnomaly',
+        description: 'Monitors data streams for unusual events and anomalies. Use this to investigate potential issues like price spikes, delays, or quality problems.',
+        inputSchema: AnomalyDetectionInputSchema,
+        outputSchema: AnomalyDetectionOutputSchema
+    },
+    async (input) => detectAnomaly(input)
+);
+
+const demandForecastingTool = ai.defineTool(
+    {
+        name: 'forecastDemand',
+        description: 'Analyzes historical data and market trends to predict future product demand.',
+        inputSchema: DemandForecastingInputSchema,
+        outputSchema: DemandForecastingOutputSchema
+    },
+    async (input) => forecastDemand(input)
+);
+
+const procurementSuggestionTool = ai.defineTool(
+    {
+        name: 'procurementSuggestion',
+        description: 'Recommends optimal raw material orders based on forecasts, inventory, and supplier data.',
+        inputSchema: ProcurementSuggestionInputSchema,
+        outputSchema: ProcurementSuggestionOutputSchema
+    },
+    async (input) => procurementSuggestion(input)
+);
+
+const allTools = [anomalyDetectionTool, demandForecastingTool, procurementSuggestionTool];
+
+// Main Orchestrator Flow
 export async function mainQuery(input: MainQueryInput): Promise<MainQueryOutput> {
   return mainQueryFlow(input);
 }
-
-const prompt = ai.definePrompt({
-  name: 'mainQueryPrompt',
-  input: {schema: MainQueryInputSchema},
-  output: {schema: MainQueryOutputSchema},
-  prompt: `You are NexusChain AI, an intelligent supply chain optimization system. You orchestrate a team of specialized AI agents to respond to user goals.
-
-Your task is to take a user's query and generate a complete response in JSON format. This response must include a final summary, a list of actionable recommendations, and a simulated workflow of the agents involved, including advanced analysis.
-
-User Query: "{{query}}"
-
-Your available agents and their functions:
-- Demand Forecasting Agent (icon: 'BarChartBig'): Analyzes historical data and market trends to predict future product demand. Provides confidence scores.
-- Anomaly Detection Agent (icon: 'AlertTriangle'): Monitors data streams for unusual events. It classifies anomalies, provides a confidence score, and performs a root cause analysis summary.
-- Procurement Suggestion Agent (icon: 'ShoppingCart'): Recommends optimal raw material orders based on forecasts, inventory, and supplier data. Provides cost/benefit analysis summaries.
-- Logistics Agent (icon: 'Truck'): Plans and optimizes transportation routes and schedules.
-
-Based on the user's query, you must:
-1.  Logically determine which agents are needed and in what sequence.
-2.  Create a "workflow" array. Each step should be detailed.
-    - For anomalies, include 'classification', 'confidence', and a 'summary' for root cause.
-    - For forecasts, include a 'confidence' score.
-    - For procurement, include a 'summary' for the cost/benefit analysis.
-3.  Simulate realistic but concise outputs for each agent.
-4.  Write a final, high-level 'summary' that synthesizes the agent results.
-5.  Provide a 'recommendations' array. Each recommendation must have 'text' and an optional 'action' label for a button.
-
-Example Query: "Investigate the recent rise in steel prices and suggest actions."
-
-Example Workflow Step for Anomaly Detection:
-{
-  "agent": "Anomaly Detection Agent",
-  "icon": "AlertTriangle",
-  "action": "Detected a 15% price spike in steel.",
-  "details": "Monitored LME steel futures and supplier price lists. Price increased from $800/ton to $920/ton in the last 7 days.",
-  "classification": "Supplier-driven Price Increase",
-  "confidence": 92,
-  "summary": "Root cause analysis indicates a major supplier, 'SteelCorp', has reduced production due to factory upgrades, creating a supply shortage. News sentiment analysis confirms this."
-}
-
-Example Workflow Step for Procurement:
-{
-  "agent": "Procurement Suggestion Agent",
-  "icon": "ShoppingCart",
-  "action": "Recommended diversifying suppliers & exploring alternatives.",
-  "details": "Current reliance on SteelCorp is high-risk. Identified two alternative suppliers: 'MetalMakers' and 'Alloy Inc.' Also identified Aluminum Alloy XYZ as a viable material substitute for non-critical components.",
-  "summary": "Cost/Benefit Analysis: Diversifying suppliers may increase short-term costs by 3-5% but reduces dependency risk. Switching to Aluminum Alloy XYZ could cut material costs by 8% on applicable parts after a one-time re-tooling investment."
-}
-
-Example Recommendation:
-{
-    "text": "Initiate discussions with 'MetalMakers' and 'Alloy Inc.' to secure alternative steel sources and mitigate risk from SteelCorp's production issues.",
-    "action": "Generate Negotiation Briefs"
-}
-
-Now, for the user query "{{query}}", generate the full JSON output.
-`,
-});
 
 const mainQueryFlow = ai.defineFlow(
   {
@@ -111,9 +96,32 @@ const mainQueryFlow = ai.defineFlow(
     outputSchema: MainQueryOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const llmResponse = await ai.generate({
+        prompt: `You are NexusChain AI, an intelligent supply chain optimization system. Your task is to orchestrate a team of specialized AI agents, which are available to you as tools, to respond to the user's goal.
+
+        User Query: "${input.query}"
+        
+        Based on the user's query, you must:
+        1.  **Analyze the query** to determine what information is needed.
+        2.  **Call the necessary tools** in a logical sequence to gather the required data. You can call multiple tools if needed.
+        3.  **Synthesize the results** from the tools into a coherent analysis.
+        4.  **Generate a final response in JSON format** that strictly adheres to the provided schema. The JSON response must include:
+            *   \`summary\`: A concise, high-level summary that directly answers the user's query based on the tool outputs.
+            *   \`recommendations\`: A list of key, actionable recommendations.
+            *   \`workflow\`: A step-by-step log of the tools you called. For each tool call, create a workflow step object.
+                *   You must invent realistic but concise details for the 'action' and 'details' fields based on the tool's input and output.
+                *   You MUST use the correct icon for each agent: 'AlertTriangle' for detectAnomaly, 'BarChartBig' for forecastDemand, and 'ShoppingCart' for procurementSuggestion.
+        
+        Do not invent information that cannot be derived from the tool outputs. Your primary job is to orchestrate, analyze, and present the findings of your agent tools.`,
+        tools: allTools,
+        output: {
+            schema: MainQueryOutputSchema,
+        },
+    });
+
+    const output = llmResponse.output;
     if (!output) {
-      throw new Error("Failed to get a response from the AI model.");
+      throw new Error("Failed to get a structured response from the AI model.");
     }
     return output;
   }

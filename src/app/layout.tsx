@@ -1,7 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { Footer } from '@/components/footer';
 
 export const metadata: Metadata = {
   title: 'NexusChain AI Navigator',
@@ -24,7 +23,6 @@ export default function RootLayout({
         <div className="flex-grow">
           {children}
         </div>
-        <Footer />
         <Toaster />
       </body>
     </html>

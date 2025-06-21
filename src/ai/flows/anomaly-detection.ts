@@ -9,26 +9,11 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { AnomalyDetectionInputSchema, AnomalyDetectionOutputSchema } from '../schemas/anomaly-detection.schema';
+import type { z } from 'genkit';
 
-const DetectAnomalyInputSchema = z.object({
-  dataStreamDescription: z
-    .string()
-    .describe('Description of the data stream being monitored.'),
-  recentDataSample: z
-    .string()
-    .describe('A recent sample of data from the stream.'),
-});
-export type DetectAnomalyInput = z.infer<typeof DetectAnomalyInputSchema>;
-
-const DetectAnomalyOutputSchema = z.object({
-  isAnomaly: z.boolean().describe('Whether an anomaly is detected.'),
-  anomalyDescription: z
-    .string()
-    .describe('A description of the detected anomaly, if any.'),
-  suggestedActions: z.string().describe('Suggested actions to mitigate the anomaly'),
-});
-export type DetectAnomalyOutput = z.infer<typeof DetectAnomalyOutputSchema>;
+export type DetectAnomalyInput = z.infer<typeof AnomalyDetectionInputSchema>;
+export type DetectAnomalyOutput = z.infer<typeof AnomalyDetectionOutputSchema>;
 
 export async function detectAnomaly(input: DetectAnomalyInput): Promise<DetectAnomalyOutput> {
   return detectAnomalyFlow(input);
@@ -36,8 +21,8 @@ export async function detectAnomaly(input: DetectAnomalyInput): Promise<DetectAn
 
 const anomalyDetectionPrompt = ai.definePrompt({
   name: 'anomalyDetectionPrompt',
-  input: {schema: DetectAnomalyInputSchema},
-  output: {schema: DetectAnomalyOutputSchema},
+  input: {schema: AnomalyDetectionInputSchema},
+  output: {schema: AnomalyDetectionOutputSchema},
   prompt: `You are an expert in supply chain anomaly detection.
 
 You are monitoring the following data stream:
@@ -46,10 +31,15 @@ You are monitoring the following data stream:
 A recent sample from this data stream is:
 {{{recentDataSample}}}
 
-Determine if there is an anomaly in the data stream based on the recent sample.
-If there is an anomaly, provide a description of the anomaly and suggest actions to mitigate it. Otherwise indicate that no anomaly was detected.
-
-Ensure that the suggested action is appropriate and possible.
+Based on this, perform the following:
+1.  Determine if there is an anomaly.
+2.  If an anomaly is detected:
+    a. Describe the anomaly clearly.
+    b. Suggest concrete actions to mitigate it.
+    c. Provide a confidence score (0-100) for your detection.
+    d. Classify the anomaly (e.g., 'Supplier-driven price increase', 'Market speculation', 'Logistical delay', 'Quality control issue').
+    e. Provide a brief summary of the potential root cause, using your analytical abilities to infer possibilities.
+3.  If no anomaly is detected, clearly state that.
 
 Output in JSON format.
 `,
@@ -58,8 +48,8 @@ Output in JSON format.
 const detectAnomalyFlow = ai.defineFlow(
   {
     name: 'detectAnomalyFlow',
-    inputSchema: DetectAnomalyInputSchema,
-    outputSchema: DetectAnomalyOutputSchema,
+    inputSchema: AnomalyDetectionInputSchema,
+    outputSchema: AnomalyDetectionOutputSchema,
   },
   async input => {
     const {output} = await anomalyDetectionPrompt(input);

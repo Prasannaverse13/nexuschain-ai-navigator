@@ -9,46 +9,12 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ProcurementSuggestionInputSchema, ProcurementSuggestionOutputSchema } from '../schemas/procurement-suggestion.schema';
+import type { z } from 'genkit';
 
-const ProcurementSuggestionInputSchema = z.object({
-  demandForecast: z
-    .string()
-    .describe('The demand forecast for the upcoming period.'),
-  currentInventory: z
-    .string()
-    .describe('The current inventory levels of raw materials.'),
-  inventoryThreshold: z
-    .string()
-    .describe(
-      'The minimum inventory threshold for each raw material before reordering.'
-    ),
-  anomalyInformation: z
-    .string()
-    .optional()
-    .describe(
-      'Information about any anomalies detected in the supply chain (e.g., price spikes, delays).'
-    ),
-});
-export type ProcurementSuggestionInput = z.infer<
-  typeof ProcurementSuggestionInputSchema
->;
 
-const ProcurementSuggestionOutputSchema = z.object({
-  suggestedOrders: z.string().describe(
-    'A list of suggested orders for raw materials, including quantity and supplier recommendations.'
-  ),
-  reasoning: z.string().describe('The reasoning behind the suggested orders.'),
-  riskAssessment: z
-    .string()
-    .optional()
-    .describe(
-      'An assessment of potential risks associated with the suggested orders (e.g., supplier reliability, price volatility).'
-    ),
-});
-export type ProcurementSuggestionOutput = z.infer<
-  typeof ProcurementSuggestionOutputSchema
->;
+export type ProcurementSuggestionInput = z.infer<typeof ProcurementSuggestionInputSchema>;
+export type ProcurementSuggestionOutput = z.infer<typeof ProcurementSuggestionOutputSchema>;
 
 export async function procurementSuggestion(
   input: ProcurementSuggestionInput
@@ -70,7 +36,8 @@ const prompt = ai.definePrompt({
   Anomalies: {{{anomalyInformation}}}
 
   Consider all factors to minimize costs, avoid stockouts, and mitigate risks.
-  Please provide a clear, concise summary of suggestions, reasoning, and risk assessment.`,
+  Your response should also include a brief cost/benefit analysis for your primary suggestion.
+  Please provide a clear, concise summary of suggestions, reasoning, and risk assessment in the proper JSON format.`,
 });
 
 const procurementSuggestionFlow = ai.defineFlow(

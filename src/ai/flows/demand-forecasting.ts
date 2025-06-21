@@ -1,4 +1,3 @@
-// src/ai/flows/demand-forecasting.ts
 'use server';
 /**
  * @fileOverview Demand Forecasting AI agent.
@@ -9,21 +8,12 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { DemandForecastingInputSchema, DemandForecastingOutputSchema } from '../schemas/demand-forecasting.schema';
+import type { z } from 'genkit';
 
-const ForecastDemandInputSchema = z.object({
-  productName: z.string().describe('The name of the product to forecast demand for.'),
-  timePeriod: z.string().describe('The time period for the demand forecast (e.g., Q3 2024, next month).'),
-});
-export type ForecastDemandInput = z.infer<typeof ForecastDemandInputSchema>;
 
-const ForecastDemandOutputSchema = z.object({
-  forecastedDemand: z
-    .number()
-    .describe('The forecasted demand for the product during the specified time period.'),
-  rationale: z.string().describe('The rationale behind the demand forecast, including factors considered.'),
-});
-export type ForecastDemandOutput = z.infer<typeof ForecastDemandOutputSchema>;
+export type ForecastDemandInput = z.infer<typeof DemandForecastingInputSchema>;
+export type ForecastDemandOutput = z.infer<typeof DemandForecastingOutputSchema>;
 
 export async function forecastDemand(input: ForecastDemandInput): Promise<ForecastDemandOutput> {
   return forecastDemandFlow(input);
@@ -31,8 +21,8 @@ export async function forecastDemand(input: ForecastDemandInput): Promise<Foreca
 
 const prompt = ai.definePrompt({
   name: 'forecastDemandPrompt',
-  input: {schema: ForecastDemandInputSchema},
-  output: {schema: ForecastDemandOutputSchema},
+  input: {schema: DemandForecastingInputSchema},
+  output: {schema: DemandForecastingOutputSchema},
   prompt: `You are an expert supply chain analyst specializing in demand forecasting.
 
 You will use historical sales data and external factors to predict the demand for a specific product during a specified time period.
@@ -42,15 +32,15 @@ Time Period: {{{timePeriod}}}
 
 Consider factors such as historical sales trends, seasonality, marketing campaigns, economic indicators, and competitor activities.
 
-Provide a numerical forecast for the demand and a clear rationale explaining the factors influencing the forecast.
+Provide a numerical forecast for the demand, a clear rationale explaining the factors influencing the forecast, and a confidence score (0-100) for your prediction.
 `,
 });
 
 const forecastDemandFlow = ai.defineFlow(
   {
     name: 'forecastDemandFlow',
-    inputSchema: ForecastDemandInputSchema,
-    outputSchema: ForecastDemandOutputSchema,
+    inputSchema: DemandForecastingInputSchema,
+    outputSchema: DemandForecastingOutputSchema,
   },
   async input => {
     const {output} = await prompt(input);
