@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Zap, Lightbulb } from 'lucide-react';
 import { WorkflowStep } from './workflow-step';
+import type { MainQueryInput } from '@/ai/flows/main-query-flow';
 
 const formSchema = z.object({
   query: z.string().min(10, { message: 'Please enter a more detailed query.' }),
@@ -37,7 +38,11 @@ export function MainPage() {
   const [placeholder, setPlaceholder] = useState(placeholders[0]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
-  const [result, setResult] = useState<MainQueryOutput | null>(null);
+  
+  const [fullResult, setFullResult] = useState<MainQueryOutput | null>(null);
+  const [displayedWorkflow, setDisplayedWorkflow] = useState<MainQueryOutput['workflow']>([]);
+  const [finalSummary, setFinalSummary] = useState<MainQueryOutput | null>(null);
+
   const resultsRef = useRef<HTMLDivElement>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -69,18 +74,38 @@ export function MainPage() {
   }, [isLoading]);
   
   useEffect(() => {
-    if (result) {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (fullResult) {
+      // Clear previous results before starting new animation
+      setDisplayedWorkflow([]);
+      setFinalSummary(null);
+
+      // Animate workflow steps
+      fullResult.workflow.forEach((step, index) => {
+        setTimeout(() => {
+          setDisplayedWorkflow(prev => [...prev, step]);
+          // If it's the last step, show the final summary after a short delay
+          if (index === fullResult.workflow.length - 1) {
+            setTimeout(() => {
+              setFinalSummary(fullResult);
+              resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 750);
+          }
+        }, index * 1200);
+      });
     }
-  }, [result]);
+  }, [fullResult]);
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    setResult(null);
+    setFullResult(null);
+    setDisplayedWorkflow([]);
+    setFinalSummary(null);
     setLoadingMessage(loadingMessages[0]);
+    
     try {
-      const response = await mainQuery(values);
-      setResult(response);
+      const response = await mainQuery(values as MainQueryInput);
+      setFullResult(response);
     } catch (error) {
       console.error("Error processing query:", error);
       // Here you would use a toast to show the error
@@ -107,6 +132,7 @@ export function MainPage() {
                 {...form.register('query')}
                 placeholder={placeholder}
                 className="w-full h-24 text-base resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
+                disabled={isLoading}
               />
               <div className="flex justify-end">
                 <Button type="submit" disabled={isLoading} size="lg">
@@ -135,14 +161,14 @@ export function MainPage() {
             </div>
           )}
 
-          {result && (
+          {finalSummary && (
             <div className="animate-in fade-in-0 duration-500 space-y-8">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-xl font-headline">Summary</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-base text-foreground">{result.summary}</p>
+                  <p className="text-base text-foreground">{finalSummary.summary}</p>
                 </CardContent>
               </Card>
 
@@ -155,27 +181,29 @@ export function MainPage() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 list-disc pl-5">
-                    {result.recommendations.map((rec, index) => (
+                    {finalSummary.recommendations.map((rec, index) => (
                       <li key={index} className="text-base text-foreground">{rec}</li>
                     ))}
                   </ul>
                 </CardContent>
               </Card>
+            </div>
+          )}
 
-              <div>
-                <h2 className="text-xl font-headline font-semibold mb-4 ml-2">Agent Workflow</h2>
-                <div className="space-y-2">
-                    {result.workflow.map((step, index) => (
-                        <WorkflowStep
-                            key={index}
-                            agent={step.agent}
-                            icon={step.icon}
-                            action={step.action}
-                            details={step.details}
-                            isLast={index === result.workflow.length - 1}
-                        />
-                    ))}
-                </div>
+          {displayedWorkflow.length > 0 && (
+            <div className="animate-in fade-in-0 duration-500">
+              <h2 className="text-xl font-headline font-semibold mb-4 ml-2">Agent Workflow</h2>
+              <div className="space-y-0">
+                  {displayedWorkflow.map((step, index) => (
+                      <WorkflowStep
+                          key={index}
+                          agent={step.agent}
+                          icon={step.icon}
+                          action={step.action}
+                          details={step.details}
+                          isLast={index === (fullResult?.workflow.length ?? 0) - 1}
+                      />
+                  ))}
               </div>
             </div>
           )}

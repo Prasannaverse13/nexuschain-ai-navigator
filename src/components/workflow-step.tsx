@@ -35,7 +35,7 @@ export function WorkflowStep({ icon, agent, action, details, isLast = false }: W
         <div className="min-w-0 flex-1 pt-1.5">
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="item-1" className="border-b-0">
-                <Card className="w-full">
+                <Card className="w-full shadow-sm">
                     <AccordionTrigger className="p-4 hover:no-underline text-left [&[data-state=open]>div>svg]:rotate-180">
                         <div className="flex-1">
                             <p className="text-sm font-semibold text-primary">{agent}</p>
