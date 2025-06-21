@@ -10,9 +10,10 @@ import { PageHeader } from '@/components/page-header';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Zap, Lightbulb } from 'lucide-react';
+import { Loader2, Zap, Lightbulb, RefreshCcw } from 'lucide-react';
 import { WorkflowStep } from './workflow-step';
 import type { MainQueryInput } from '@/ai/flows/main-query-flow';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   query: z.string().min(10, { message: 'Please enter a more detailed query.' }),
@@ -30,7 +31,7 @@ const loadingMessages = [
   "Orchestrating agents...",
   "Demand Forecasting Agent initiated...",
   "Procurement Agent analyzing market data...",
-  "Logistics Agent calculating routes...",
+  "Anomaly Detection Agent scanning for issues...",
   "Compiling results...",
 ];
 
@@ -38,6 +39,7 @@ export function MainPage() {
   const [placeholder, setPlaceholder] = useState(placeholders[0]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
+  const { toast } = useToast();
   
   const [fullResult, setFullResult] = useState<MainQueryOutput | null>(null);
   const [displayedWorkflow, setDisplayedWorkflow] = useState<MainQueryOutput['workflow']>([]);
@@ -75,7 +77,6 @@ export function MainPage() {
   
   useEffect(() => {
     if (fullResult) {
-      // Clear previous results before starting new animation
       setDisplayedWorkflow([]);
       setFinalSummary(null);
 
@@ -83,7 +84,6 @@ export function MainPage() {
       fullResult.workflow.forEach((step, index) => {
         setTimeout(() => {
           setDisplayedWorkflow(prev => [...prev, step]);
-          // If it's the last step, show the final summary after a short delay
           if (index === fullResult.workflow.length - 1) {
             setTimeout(() => {
               setFinalSummary(fullResult);
@@ -108,11 +108,22 @@ export function MainPage() {
       setFullResult(response);
     } catch (error) {
       console.error("Error processing query:", error);
-      // Here you would use a toast to show the error
+      toast({
+        variant: "destructive",
+        title: "An Error Occurred",
+        description: "Failed to process the request. Please try again.",
+      })
     } finally {
       setIsLoading(false);
     }
   }
+
+  const handleNewQuery = () => {
+    form.reset({ query: '' });
+    setFullResult(null);
+    setDisplayedWorkflow([]);
+    setFinalSummary(null);
+  };
 
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -125,7 +136,7 @@ export function MainPage() {
           </p>
         </div>
         
-        <Card className="w-full max-w-3xl bg-background/50 backdrop-blur-lg border border-border/30 shadow-2xl rounded-2xl">
+        <Card className="w-full max-w-3xl bg-secondary/40 backdrop-blur-xl border border-border/30 shadow-2xl rounded-2xl">
           <CardContent className="p-4">
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <Textarea
@@ -134,7 +145,14 @@ export function MainPage() {
                 className="w-full h-24 text-base resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none bg-transparent placeholder:text-muted-foreground text-foreground"
                 disabled={isLoading}
               />
-              <div className="flex justify-end">
+              <div className="flex justify-between items-center">
+                <div className="flex-1">
+                  {fullResult && !isLoading && (
+                    <Button variant="ghost" onClick={handleNewQuery}>
+                      <RefreshCcw className="mr-2 h-4 w-4" /> New Query
+                    </Button>
+                  )}
+                </div>
                 <Button type="submit" disabled={isLoading} size="lg" className="rounded-xl">
                   {isLoading ? (
                     <>
@@ -163,7 +181,7 @@ export function MainPage() {
 
           {finalSummary && (
             <div className="animate-in fade-in-0 duration-500 space-y-8">
-               <Card className="bg-background/50 backdrop-blur-lg border border-border/30 shadow-2xl rounded-2xl">
+               <Card className="bg-secondary/40 backdrop-blur-xl border border-border/30 shadow-2xl rounded-2xl">
                 <CardHeader>
                   <CardTitle className="text-xl font-headline text-slate-100">Summary</CardTitle>
                 </CardHeader>
@@ -172,7 +190,7 @@ export function MainPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-background/50 backdrop-blur-lg border border-border/30 shadow-2xl rounded-2xl">
+              <Card className="bg-secondary/40 backdrop-blur-xl border border-border/30 shadow-2xl rounded-2xl">
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <Lightbulb className="h-6 w-6 text-accent" />
@@ -180,11 +198,20 @@ export function MainPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2 list-disc pl-5 text-slate-300">
-                    {finalSummary.recommendations.map((rec, index) => (
-                      <li key={index} className="text-base">{rec}</li>
-                    ))}
-                  </ul>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {finalSummary.recommendations.map((rec, index) => (
+                          <Card key={index} className="bg-black/20 border-slate-700 hover:border-primary/50 transition-colors">
+                              <CardContent className="p-4 flex flex-col justify-between h-full">
+                                  <p className="text-base text-slate-300 mb-4">{rec.text}</p>
+                                  {rec.action && (
+                                      <Button variant="secondary" className="mt-auto w-full">
+                                          {rec.action}
+                                      </Button>
+                                  )}
+                              </CardContent>
+                          </Card>
+                      ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -201,6 +228,9 @@ export function MainPage() {
                           icon={step.icon}
                           action={step.action}
                           details={step.details}
+                          classification={step.classification}
+                          confidence={step.confidence}
+                          summary={step.summary}
                           isLast={index === (fullResult?.workflow.length ?? 0) - 1}
                       />
                   ))}
