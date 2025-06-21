@@ -115,27 +115,27 @@ export function MainPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
+    <div className="flex min-h-screen w-full flex-col">
       <PageHeader />
       <main className="flex flex-1 flex-col items-center gap-8 p-4 md:p-8">
         <div className="w-full max-w-3xl flex flex-col items-center text-center mt-8 md:mt-16">
-          <h1 className="text-3xl md:text-4xl font-headline font-bold">The Unified Supply Chain Brain</h1>
+          <h1 className="text-3xl md:text-5xl font-headline font-bold text-transparent bg-clip-text bg-gradient-to-br from-slate-200 to-slate-400 py-2">The Unified Supply Chain Brain</h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
             Ask a question or set a goal. NexusChain AI will orchestrate the right agents to find the optimal solution for your supply chain.
           </p>
         </div>
         
-        <Card className="w-full max-w-3xl shadow-lg">
+        <Card className="w-full max-w-3xl bg-background/50 backdrop-blur-lg border border-border/30 shadow-2xl rounded-2xl">
           <CardContent className="p-4">
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <Textarea
                 {...form.register('query')}
                 placeholder={placeholder}
-                className="w-full h-24 text-base resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
+                className="w-full h-24 text-base resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none bg-transparent placeholder:text-muted-foreground text-foreground"
                 disabled={isLoading}
               />
               <div className="flex justify-end">
-                <Button type="submit" disabled={isLoading} size="lg">
+                <Button type="submit" disabled={isLoading} size="lg" className="rounded-xl">
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -163,26 +163,26 @@ export function MainPage() {
 
           {finalSummary && (
             <div className="animate-in fade-in-0 duration-500 space-y-8">
-              <Card>
+               <Card className="bg-background/50 backdrop-blur-lg border border-border/30 shadow-2xl rounded-2xl">
                 <CardHeader>
-                  <CardTitle className="text-xl font-headline">Summary</CardTitle>
+                  <CardTitle className="text-xl font-headline text-slate-100">Summary</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-base text-foreground">{finalSummary.summary}</p>
+                  <p className="text-base text-slate-300">{finalSummary.summary}</p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-background/50 backdrop-blur-lg border border-border/30 shadow-2xl rounded-2xl">
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <Lightbulb className="h-6 w-6 text-accent" />
-                        <CardTitle className="text-xl font-headline">Key Recommendations</CardTitle>
+                        <CardTitle className="text-xl font-headline text-slate-100">Key Recommendations</CardTitle>
                     </div>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2 list-disc pl-5">
+                  <ul className="space-y-2 list-disc pl-5 text-slate-300">
                     {finalSummary.recommendations.map((rec, index) => (
-                      <li key={index} className="text-base text-foreground">{rec}</li>
+                      <li key={index} className="text-base">{rec}</li>
                     ))}
                   </ul>
                 </CardContent>
@@ -192,7 +192,7 @@ export function MainPage() {
 
           {displayedWorkflow.length > 0 && (
             <div className="animate-in fade-in-0 duration-500">
-              <h2 className="text-xl font-headline font-semibold mb-4 ml-2">Agent Workflow</h2>
+              <h2 className="text-2xl font-headline font-semibold mb-4 ml-2 text-slate-100">Agent Workflow</h2>
               <div className="space-y-0">
                   {displayedWorkflow.map((step, index) => (
                       <WorkflowStep
