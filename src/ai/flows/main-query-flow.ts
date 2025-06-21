@@ -14,13 +14,13 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-import { detectAnomaly } from './anomaly-detection';
+import { detectAnomaly, type DetectAnomalyInput, type DetectAnomalyOutput } from './anomaly-detection';
 import { AnomalyDetectionInputSchema, AnomalyDetectionOutputSchema } from '../schemas/anomaly-detection.schema';
-import { forecastDemand } from './demand-forecasting';
+import { forecastDemand, type ForecastDemandInput, type ForecastDemandOutput } from './demand-forecasting';
 import { DemandForecastingInputSchema, DemandForecastingOutputSchema } from '../schemas/demand-forecasting.schema';
-import { procurementSuggestion } from './procurement-suggestion';
+import { procurementSuggestion, type ProcurementSuggestionInput, type ProcurementSuggestionOutput } from './procurement-suggestion';
 import { ProcurementSuggestionInputSchema, ProcurementSuggestionOutputSchema } from '../schemas/procurement-suggestion.schema';
-import { planRoute } from './logistics';
+import { planRoute, type LogisticsInput, type LogisticsOutput } from './logistics';
 import { LogisticsInputSchema, LogisticsOutputSchema } from '../schemas/logistics.schema';
 
 
@@ -61,17 +61,17 @@ const anomalyDetectionTool = ai.defineTool(
         inputSchema: AnomalyDetectionInputSchema,
         outputSchema: AnomalyDetectionOutputSchema
     },
-    async (input) => detectAnomaly(input)
+    async (input: DetectAnomalyInput) => detectAnomaly(input)
 );
 
 const demandForecastingTool = ai.defineTool(
     {
         name: 'forecastDemand',
-        description: 'Analyzes historical data and market trends to predict future product demand.',
+        description: 'Analyzes historical data and market trends to predict future product demand. Retrieves data from data warehouse.',
         inputSchema: DemandForecastingInputSchema,
         outputSchema: DemandForecastingOutputSchema
     },
-    async (input) => forecastDemand(input)
+    async (input: ForecastDemandInput) => forecastDemand(input)
 );
 
 const procurementSuggestionTool = ai.defineTool(
@@ -81,7 +81,7 @@ const procurementSuggestionTool = ai.defineTool(
         inputSchema: ProcurementSuggestionInputSchema,
         outputSchema: ProcurementSuggestionOutputSchema
     },
-    async (input) => procurementSuggestion(input)
+    async (input: ProcurementSuggestionInput) => procurementSuggestion(input)
 );
 
 const logisticsTool = ai.defineTool(
@@ -91,7 +91,7 @@ const logisticsTool = ai.defineTool(
         inputSchema: LogisticsInputSchema,
         outputSchema: LogisticsOutputSchema
     },
-    async (input) => planRoute(input)
+    async (input: LogisticsInput) => planRoute(input)
 );
 
 const allTools = [anomalyDetectionTool, demandForecastingTool, procurementSuggestionTool, logisticsTool];
@@ -114,14 +114,14 @@ const mainQueryFlow = ai.defineFlow(
         User Query: "${input.query}"
         
         Based on the user's query, you must:
-        1.  **Analyze the query** to determine what information is needed.
+        1.  **Analyze the query** to determine what information is needed. For forecasting, this means retrieving historical data. For anomaly detection, it means checking data streams.
         2.  **Call the necessary tools** in a logical sequence to gather the required data. You can call multiple tools if needed.
         3.  **Synthesize the results** from the tools into a coherent analysis.
         4.  **Generate a final response in JSON format** that strictly adheres to the provided schema. The JSON response must include:
             *   \`summary\`: A concise, high-level summary that directly answers the user's query based on the tool outputs.
             *   \`recommendations\`: A list of key, actionable recommendations.
             *   \`workflow\`: A step-by-step log of the tools you called. For each tool call, create a workflow step object.
-                *   You must invent realistic but concise details for the 'action' and 'details' fields based on the tool's input and output.
+                *   You must invent realistic but concise details for the 'action' and 'details' fields based on the tool's input and output. For data retrieval steps, explicitly mention the source (e.g., 'Retrieved historical data from BigQuery').
                 *   You MUST use the correct icon for each agent: 'AlertTriangle' for detectAnomaly, 'BarChartBig' for forecastDemand, 'ShoppingCart' for procurementSuggestion, and 'Truck' for planRoute.
         
         Do not invent information that cannot be derived from the tool outputs. Your primary job is to orchestrate, analyze, and present the findings of your agent tools.`,

@@ -9,7 +9,8 @@
 
 import {ai} from '@/ai/genkit';
 import { DemandForecastingInputSchema, DemandForecastingOutputSchema } from '../schemas/demand-forecasting.schema';
-import type { z } from 'genkit';
+import {z} from 'genkit';
+import { getHistoricalSalesData } from '@/services/bigquery';
 
 
 export type ForecastDemandInput = z.infer<typeof DemandForecastingInputSchema>;
@@ -21,7 +22,11 @@ export async function forecastDemand(input: ForecastDemandInput): Promise<Foreca
 
 const prompt = ai.definePrompt({
   name: 'forecastDemandPrompt',
-  input: {schema: DemandForecastingInputSchema},
+  input: {schema: z.object({
+    productName: z.string(),
+    timePeriod: z.string(),
+    historicalData: z.string(),
+  })},
   output: {schema: DemandForecastingOutputSchema},
   prompt: `You are an expert supply chain analyst specializing in demand forecasting.
 
@@ -30,9 +35,10 @@ You will use historical sales data and external factors to predict the demand fo
 Product Name: {{{productName}}}
 Time Period: {{{timePeriod}}}
 
-Consider factors such as historical sales trends, seasonality, marketing campaigns, economic indicators, and competitor activities.
+Historical Data Analysis:
+{{{historicalData}}}
 
-Provide a numerical forecast for the demand, a clear rationale explaining the factors influencing the forecast, and a confidence score (0-100) for your prediction.
+Based on this data, provide a numerical forecast for the demand, a clear rationale explaining the factors influencing the forecast, and a confidence score (0-100) for your prediction.
 `,
 });
 
@@ -42,8 +48,15 @@ const forecastDemandFlow = ai.defineFlow(
     inputSchema: DemandForecastingInputSchema,
     outputSchema: DemandForecastingOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    // In a real application, this would fetch live data from BigQuery.
+    const historicalData = await getHistoricalSalesData(input.productName);
+
+    const {output} = await prompt({
+      productName: input.productName,
+      timePeriod: input.timePeriod,
+      historicalData: JSON.stringify(historicalData, null, 2),
+    });
     return output!;
   }
 );
