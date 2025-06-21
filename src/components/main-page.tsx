@@ -126,7 +126,7 @@ export function MainPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col">
+    <div className="flex flex-col w-full h-full">
       <PageHeader />
       <main className="flex flex-1 flex-col items-center gap-8 p-4 md:p-8">
         <div className="w-full max-w-3xl flex flex-col items-center text-center mt-8 md:mt-16">
