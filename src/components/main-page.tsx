@@ -45,6 +45,8 @@ export function MainPage() {
   const [fullResult, setFullResult] = useState<MainQueryOutput | null>(null);
   const [displayedWorkflow, setDisplayedWorkflow] = useState<MainQueryOutput['workflow']>([]);
   const [finalSummary, setFinalSummary] = useState<MainQueryOutput | null>(null);
+  const [originalQuery, setOriginalQuery] = useState('');
+
 
   const resultsRef = useRef<HTMLDivElement>(null);
   
@@ -103,6 +105,7 @@ export function MainPage() {
     setDisplayedWorkflow([]);
     setFinalSummary(null);
     setLoadingMessage(loadingMessages[0]);
+    setOriginalQuery(values.query);
     
     try {
       const response = await mainQuery(values as MainQueryInput);
@@ -124,7 +127,63 @@ export function MainPage() {
     setFullResult(null);
     setDisplayedWorkflow([]);
     setFinalSummary(null);
+    setOriginalQuery('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const handleRecommendationClick = (action: string) => {
+    if (!originalQuery) return;
+
+    // A simple heuristic to extract the core subject from the original query.
+    const extractTopic = (query: string): string => {
+        const matches = query.match(/'([^']+)'|"([^"]+)"/);
+        if (matches) {
+            return matches[1] || matches[2];
+        }
+        const keywords = ['for', 'about', 'regarding'];
+        for (const keyword of keywords) {
+            const parts = query.split(new RegExp(`\\b${keyword}\\b`, 'i'));
+            if (parts.length > 1) {
+                return parts[1].trim().replace(/\?$/, '').trim();
+            }
+        }
+        return query; // Fallback to the whole query if no clear topic is found
+    };
+
+    const topic = extractTopic(originalQuery);
+
+    let newQueryText = '';
+    switch (action) {
+        case 'Generate Demand Forecast':
+            newQueryText = `Generate a detailed demand forecast for ${topic}.`;
+            break;
+        case 'Find Suppliers':
+            newQueryText = `Find and evaluate potential suppliers for ${topic}.`;
+            break;
+        case 'Optimize Production':
+             newQueryText = `Analyze and suggest optimizations for the manufacturing process of ${topic}.`;
+             break;
+        case 'Optimize Inventory':
+            newQueryText = `Develop an optimal inventory management strategy for ${topic}.`;
+            break;
+        case 'Plan Delivery Routes':
+            newQueryText = `Investigate and plan efficient delivery routes and logistics for ${topic}.`;
+            break;
+        case 'Create Returns Policy':
+            newQueryText = `Design a customer-friendly returns policy and reverse logistics process for ${topic}.`;
+            break;
+        case 'Set Up Anomaly Monitoring':
+            newQueryText = `Set up continuous anomaly monitoring for the supply chain related to ${topic}.`;
+            break;
+        default:
+            newQueryText = `${action} regarding ${topic}`; // A generic fallback
+    }
+
+    form.setValue('query', newQueryText);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    onSubmit({ query: newQueryText });
+  };
+
 
   return (
     <div className="flex flex-col w-full min-h-screen">
@@ -205,7 +264,13 @@ export function MainPage() {
                               <CardContent className="p-4 flex flex-col justify-between h-full">
                                   <p className="text-base text-slate-300 mb-4">{rec.text}</p>
                                   {rec.action && (
-                                      <Button variant="secondary" className="mt-auto w-full">
+                                      <Button 
+                                        variant="secondary" 
+                                        className="mt-auto w-full"
+                                        onClick={() => handleRecommendationClick(rec.action!)}
+                                        disabled={isLoading}
+                                      >
+                                          <Zap className="mr-2 h-4 w-4" />
                                           {rec.action}
                                       </Button>
                                   )}

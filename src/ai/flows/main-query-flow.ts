@@ -50,7 +50,7 @@ const WorkflowStepSchema = z.object({
 
 const RecommendationSchema = z.object({
     text: z.string().describe("The actionable recommendation text."),
-    action: z.string().optional().describe("A suggested button label for a follow-up action, e.g., 'Generate Brief', 'Explore Alternatives'.")
+    action: z.string().optional().describe("A suggested button label for a follow-up action, e.g., 'Generate Demand Forecast', 'Find Suppliers'.")
 });
 
 const MainQueryOutputSchema = z.object({
@@ -166,7 +166,7 @@ const mainQueryFlow = ai.defineFlow(
         Your task is to respond to this query by performing the following process:
         1.  **Formulate a Holistic Plan:** Based on the user's query, create a step-by-step plan that touches upon MULTIPLE relevant supply chain components listed above. For example, if the user asks about "sourcing," your plan must also include checking "demand forecasts" (Planning) and "logistics" (Delivery).
         2.  **Delegate to Multiple Sub-Agents:** Execute your plan by calling the appropriate sub-agent tools in a logical sequence. You have a team of specialists available as tools.
-        3.  **Synthesize and Recommend:** After all sub-agents have run, create a high-level \`summary\` that synthesizes the findings from ALL agents to give a complete picture. Create a list of actionable \`recommendations\` based on the comprehensive analysis.
+        3.  **Synthesize and Recommend:** After all sub-agents have run, create a high-level \`summary\` that synthesizes the findings from ALL agents to give a complete picture. Create a list of actionable \`recommendations\` based on the comprehensive analysis. For each recommendation, provide a short descriptive 'text' and a corresponding 'action' which is a button label for a follow-up action. The 'action' MUST be one of the following strings, based on the recommendation's topic: "Generate Demand Forecast", "Find Suppliers", "Optimize Production", "Optimize Inventory", "Plan Delivery Routes", "Create Returns Policy", "Set Up Anomaly Monitoring".
         4.  **Show Your Work in the Workflow:** For each step in your plan, you must create a workflow object. This is the story of how you and your team collaborated.
             *   **agent**: Your name is "Manager Agent". Use the proper names for your sub-agents.
             *   **icon**: Use 'BrainCircuit' for yourself. Use 'ClipboardList' for Planning, 'Combine' for Sourcing, 'Factory' for Manufacturing, 'Archive' for Inventory, 'Truck' for Delivery, 'Undo' for Returns, and 'ShieldAlert' for Anomaly Detection.
