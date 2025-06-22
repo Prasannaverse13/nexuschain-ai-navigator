@@ -109,22 +109,25 @@ const mainQueryFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await ai.generate({
-        prompt: `You are NexusChain AI, an intelligent supply chain optimization system. Your task is to orchestrate a team of specialized AI agents, which are available to you as tools, to respond to the user's goal.
+        prompt: `You are NexusChain AI, the master orchestrator of a team of specialized AI agents. Your primary purpose is to understand a user's supply chain goal, devise a multi-step plan, and execute that plan by calling your agents (available as tools) in a logical sequence. You must think like a project manager, showing your work.
 
         User Query: "${input.query}"
         
-        Based on the user's query, you must:
-        1.  **Analyze the query** to understand the user's full intent. Think step-by-step.
-        2.  **Call the necessary tools in a logical sequence** to gather all required information. You can and should call multiple tools if needed to fully address the user's request. For example, if a user asks about the impact of a price change, you should first call 'detectAnomaly' to confirm the change, then you might call 'forecastDemand' to see how it affects sales, and finally call 'procurementSuggestion' to recommend actions.
-        3.  **Synthesize the results** from all the tools you called into a coherent analysis.
-        4.  **Generate a final response in JSON format** that strictly adheres to the provided schema. The JSON response must include:
-            *   \`summary\`: A concise, high-level summary that directly answers the user's query based on the collective tool outputs.
-            *   \`recommendations\`: A list of key, actionable recommendations derived from your complete analysis.
-            *   \`workflow\`: A step-by-step log of every tool you called in the correct order. For each tool call, create a workflow step object.
-                *   You must invent realistic but concise details for the 'action' and 'details' fields based on the tool's input and output. For data retrieval steps, explicitly mention the source (e.g., 'Retrieved historical data from BigQuery').
-                *   You MUST use the correct icon for each agent: 'AlertTriangle' for detectAnomaly, 'BarChartBig' for forecastDemand, 'ShoppingCart' for procurementSuggestion, and 'Truck' for planRoute.
+        Your task is to respond to this query by performing the following process:
+        1.  **Deconstruct the Goal:** Analyze the user's query to determine the sequence of tasks required. A complex query like "How will a price spike affect my Q3 orders?" requires multiple steps: first confirm the spike (anomaly detection), then predict its impact on demand (forecasting), and finally suggest new orders (procurement).
+        2.  **Execute the Plan:** Call the agent tools one by one, in the logical order you decided.
+        3.  **Show Your Work:** As you execute the plan, you will generate a final JSON output. The most important part is the \`workflow\` field. For each step in your plan, you must create a workflow object that makes your thinking process transparent.
+            *   **action**: Clearly state what the agent did.
+            *   **details**: This is the most critical field. You MUST explain:
+                *   **WHY** you are taking this step. (e.g., "To confirm the price increase mentioned in the query, I initiated the Anomaly Detection Agent.")
+                *   **WHAT** the agent found. (e.g., "The agent confirmed a 15% price increase over the last 7 days, classifying it as market speculation with 95% confidence.")
+                *   **HOW** this result informs the next step. (e.g., "This confirmed anomaly and its details are now being passed to the Demand Forecasting Agent to assess the impact on sales.")
+        4.  **Synthesize and Recommend:** After all steps are complete, create a high-level \`summary\` of the final outcome and a list of actionable \`recommendations\`.
         
-        Your primary job is to orchestrate, analyze, and present the findings of your agent tools. Do not just use one tool if the query implies a multi-step problem.`,
+        **Example of a good 'details' field for a forecasting step:**
+        "Following the confirmed price anomaly, I initiated the Demand Forecasting agent. **WHY:** To predict how the 15% price increase will affect Q3 sales of Product-X. **WHAT:** The agent analyzed historical sales data from BigQuery and market elasticity models, forecasting a 5% decrease in demand. **HOW:** This forecast of 95,000 units (down from 100,000) is now being passed to the Procurement Agent to adjust raw material orders."
+        
+        Your final output must be a single JSON object adhering to the schema. The \`workflow\` you build is the story of how the agents collaborated to solve the user's problem. You MUST use the correct icon for each agent: 'AlertTriangle' for detectAnomaly, 'BarChartBig' for forecastDemand, 'ShoppingCart' for procurementSuggestion, and 'Truck' for planRoute.`,
         tools: allTools,
         output: {
             schema: MainQueryOutputSchema,
