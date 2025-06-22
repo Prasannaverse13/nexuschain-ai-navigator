@@ -26,7 +26,7 @@ export async function getHistoricalSalesData(productName: string): Promise<Sales
     
     // In a real implementation, you would use the @google-cloud/bigquery library
     // to run a query like:
-    // `SELECT month, units_sold FROM \`my-project.my_dataset.sales_history\` WHERE product_name = '${productName}' ORDER BY month;`
+    // `SELECT month, units_sold FROM \`active-tangent-463604-p9.my_dataset.sales_history\` WHERE product_name = '${productName}' ORDER BY month;`
 
     // Mock data representing historical sales.
     const mockData: SalesData[] = [
