@@ -1,6 +1,6 @@
 "use client";
 
-import { BrainCircuit, ClipboardList, Combine, Truck, Factory, Archive, ShieldAlert, Loader2 } from 'lucide-react';
+import { BrainCircuit, ClipboardList, Combine, Truck, Factory, Archive, ShieldAlert, Loader2, Undo } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card } from '@/components/ui/card';
 
@@ -26,6 +26,7 @@ const iconMap: { [key: string]: React.ElementType } = {
   Factory,
   Archive,
   ShieldAlert,
+  Undo,
   Default: Loader2,
 };
 

@@ -8,3 +8,7 @@ import '@/ai/flows/main-query-flow';
 import '@/ai/agents/planning-agent';
 import '@/ai/agents/sourcing-agent';
 import '@/ai/agents/delivery-agent';
+import '@/ai/agents/manufacturing-agent';
+import '@/ai/agents/inventory-agent';
+import '@/ai/agents/returns-agent';
+import '@/ai/agents/anomaly-detection-agent';

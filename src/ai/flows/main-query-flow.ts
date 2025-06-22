@@ -17,10 +17,19 @@ import { z } from 'genkit';
 import { planningAgent } from '../agents/planning-agent';
 import { sourcingAgent } from '../agents/sourcing-agent';
 import { deliveryAgent } from '../agents/delivery-agent';
+import { manufacturingAgent } from '../agents/manufacturing-agent';
+import { inventoryAgent } from '../agents/inventory-agent';
+import { returnsAgent } from '../agents/returns-agent';
+import { anomalyDetectionAgent } from '../agents/anomaly-detection-agent';
 
 import { PlanningAgentInputSchema, PlanningAgentOutputSchema } from '../schemas/planning-agent.schema';
 import { SourcingAgentInputSchema, SourcingAgentOutputSchema } from '../schemas/sourcing-agent.schema';
 import { DeliveryAgentInputSchema, DeliveryAgentOutputSchema } from '../schemas/delivery-agent.schema';
+import { ManufacturingAgentInputSchema, ManufacturingAgentOutputSchema } from '../schemas/manufacturing-agent.schema';
+import { InventoryAgentInputSchema, InventoryAgentOutputSchema } from '../schemas/inventory-agent.schema';
+import { ReturnsAgentInputSchema, ReturnsAgentOutputSchema } from '../schemas/returns-agent.schema';
+import { AnomalyDetectionAgentInputSchema, AnomalyDetectionAgentOutputSchema } from '../schemas/anomaly-detection-agent.schema';
+
 
 // Schemas for the Main Orchestrator Flow
 const MainQueryInputSchema = z.object({
@@ -30,7 +39,7 @@ export type MainQueryInput = z.infer<typeof MainQueryInputSchema>;
 
 const WorkflowStepSchema = z.object({
   agent: z.string().describe('The name of the agent that performed the action (e.g., "Manager Agent", "Planning Agent").'),
-  icon: z.enum(['BrainCircuit', 'ClipboardList', 'Combine', 'Truck', 'Factory', 'Archive', 'ShieldAlert']).describe("The pre-defined Lucide icon name representing the agent."),
+  icon: z.enum(['BrainCircuit', 'ClipboardList', 'Combine', 'Truck', 'Factory', 'Archive', 'Undo', 'ShieldAlert']).describe("The pre-defined Lucide icon name representing the agent."),
   thought: z.string().describe("A summary of the agent's thinking process, explaining WHY it took this action."),
   action: z.string().describe("A short, past-tense summary of the agent's action and its primary result."),
   details: z.object({
@@ -83,7 +92,48 @@ const deliveryTool = ai.defineTool(
     async (input) => deliveryAgent(input)
 );
 
-const allTools = [planningTool, sourcingTool, deliveryTool];
+const manufacturingTool = ai.defineTool(
+    {
+        name: 'manufacturingAgent',
+        description: 'Analyzes manufacturing processes, quality control, and production best practices for a product type.',
+        inputSchema: ManufacturingAgentInputSchema,
+        outputSchema: ManufacturingAgentOutputSchema,
+    },
+    async (input) => manufacturingAgent(input)
+);
+
+const inventoryTool = ai.defineTool(
+    {
+        name: 'inventoryAgent',
+        description: 'Researches optimal inventory levels, management strategies (like JIT), and turnover rates for a product.',
+        inputSchema: InventoryAgentInputSchema,
+        outputSchema: InventoryAgentOutputSchema,
+    },
+    async (input) => inventoryAgent(input)
+);
+
+const returnsTool = ai.defineTool(
+    {
+        name: 'returnsAgent',
+        description: 'Investigates reverse logistics, common return policies, and customer satisfaction strategies related to product returns.',
+        inputSchema: ReturnsAgentInputSchema,
+        outputSchema: ReturnsAgentOutputSchema,
+    },
+    async (input) => returnsAgent(input)
+);
+
+const anomalyDetectionTool = ai.defineTool(
+    {
+        name: 'anomalyDetectionAgent',
+        description: 'Monitors a stream of data for anomalies, such as price spikes or delays, and provides an analysis.',
+        inputSchema: AnomalyDetectionAgentInputSchema,
+        outputSchema: AnomalyDetectionAgentOutputSchema,
+    },
+    async (input) => anomalyDetectionAgent(input)
+);
+
+
+const allTools = [planningTool, sourcingTool, deliveryTool, manufacturingTool, inventoryTool, returnsTool, anomalyDetectionTool];
 
 // Main Orchestrator Flow
 export async function mainQuery(input: MainQueryInput): Promise<MainQueryOutput> {
@@ -98,22 +148,33 @@ const mainQueryFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await ai.generate({
-        prompt: `You are the Manager Agent for NexusChain AI, a sophisticated multi-agent supply chain analysis system. Your primary purpose is to understand a user's high-level goal, break it down into specialized tasks, delegate those tasks to your sub-agents (available as tools), and then synthesize their findings into a coherent, actionable report for the user.
+        prompt: `You are the Manager Agent for NexusChain AI, a sophisticated multi-agent supply chain analysis system. Your primary purpose is to provide a HOLISTIC and COMPREHENSIVE analysis of a user's supply chain query by orchestrating your team of specialized sub-agents.
+
+        **CRITICAL INSTRUCTION: Do NOT just answer the user's literal question. You must analyze the user's query through the lens of the entire supply chain. A query about one area (e.g., Sourcing) ALWAYS has implications for other areas (e.g., Planning, Delivery). Your job is to uncover and analyze these connections.**
+
+        Here are the components of a supply chain you must consider for EVERY query:
+        - **Planning:** Demand forecasting, production scheduling, inventory levels.
+        - **Sourcing:** Identifying suppliers, negotiating contracts, managing supplier relationships.
+        - **Manufacturing:** Accepting raw materials, producing the product, quality control.
+        - **Inventory Management:** Tracking inventory, ensuring right product in the right place.
+        - **Delivery:** Transportation, distribution, logistics.
+        - **Returns:** Reverse logistics, customer satisfaction.
+        - **Anomaly Detection:** Monitoring for unusual events like price spikes or delays.
 
         User Query: "${input.query}"
         
         Your task is to respond to this query by performing the following process:
-        1.  **Deconstruct the Goal:** Analyze the user's query to determine which aspects of the supply chain (Planning, Sourcing, Delivery, etc.) are relevant.
-        2.  **Formulate a Plan & Delegate:** Create a step-by-step plan. For each step, determine the appropriate sub-agent to call. Before calling, articulate your **thought** process for why you are choosing that agent.
-        3.  **Execute & Show Your Work:** Call the sub-agent tools one by one. As you get results, you will generate a final JSON output. The most important part is the \`workflow\` field. For each step in your plan (including your own analysis), you must create a workflow object.
-            *   **agent**: Your name is "Manager Agent". For sub-agents, use their proper names: "Planning Agent", "Sourcing Agent", "Delivery Agent".
-            *   **icon**: Use 'BrainCircuit' for yourself. For sub-agents, use 'ClipboardList' for the Planning Agent, 'Combine' for the Sourcing Agent, and 'Truck' for the Delivery Agent.
-            *   **thought**: THIS IS CRITICAL. Explain **WHY** you are taking this step. (e.g., "The user is asking about sourcing strategies, so I need to engage the Sourcing Agent to investigate material suppliers.")
-            *   **action**: Clearly state what the agent did. (e.g., "Delegated the task of finding lithium battery suppliers to the Sourcing Agent.")
+        1.  **Formulate a Holistic Plan:** Based on the user's query, create a step-by-step plan that touches upon MULTIPLE relevant supply chain components listed above. For example, if the user asks about "sourcing," your plan must also include checking "demand forecasts" (Planning) and "logistics" (Delivery).
+        2.  **Delegate to Multiple Sub-Agents:** Execute your plan by calling the appropriate sub-agent tools in a logical sequence. You have a team of specialists available as tools.
+        3.  **Synthesize and Recommend:** After all sub-agents have run, create a high-level \`summary\` that synthesizes the findings from ALL agents to give a complete picture. Create a list of actionable \`recommendations\` based on the comprehensive analysis.
+        4.  **Show Your Work in the Workflow:** For each step in your plan, you must create a workflow object. This is the story of how you and your team collaborated.
+            *   **agent**: Your name is "Manager Agent". Use the proper names for your sub-agents.
+            *   **icon**: Use 'BrainCircuit' for yourself. Use 'ClipboardList' for Planning, 'Combine' for Sourcing, 'Factory' for Manufacturing, 'Archive' for Inventory, 'Truck' for Delivery, 'Undo' for Returns, and 'ShieldAlert' for Anomaly Detection.
+            *   **thought**: THIS IS CRITICAL. Explain **WHY** you are taking this step as part of your holistic plan.
+            *   **action**: Clearly state what the agent did.
             *   **details**: For sub-agents, populate this with the information they return, including their search queries and findings. For your own steps, you can provide a summary of your reasoning.
-        4.  **Synthesize and Recommend:** After all sub-agents have run, create a high-level \`summary\` of the final outcome that directly answers the user's query and a list of actionable \`recommendations\`.
         
-        Your final output must be a single JSON object adhering to the schema. The \`workflow\` you build is the story of how you and your agents collaborated to solve the user's problem.`,
+        Your final output must be a single JSON object adhering to the schema. Your goal is to demonstrate comprehensive, multi-agent collaboration.`,
         tools: allTools,
         output: {
             schema: MainQueryOutputSchema,
