@@ -14,25 +14,26 @@ import { Loader2, Zap, Lightbulb, RefreshCcw } from 'lucide-react';
 import { WorkflowStep } from './workflow-step';
 import type { MainQueryInput } from '@/ai/flows/main-query-flow';
 import { useToast } from '@/hooks/use-toast';
+import { Footer } from './footer';
 
 const formSchema = z.object({
   query: z.string().min(10, { message: 'Please enter a more detailed query.' }),
 });
 
 const placeholders = [
-  "Optimize my Q3 product line for maximum profit.",
-  "Investigate the recent rise in steel prices and its impact on production.",
-  "Plan a new delivery route for urgent shipment #XYZ considering current weather.",
-  "Forecast demand for Product Alpha for the next 6 months and suggest procurement actions.",
+  "Analyze the supply chain for 'Electric Scooter Model Z' and identify key challenges.",
+  "What are the best sourcing strategies for 'Lithium Batteries' in the EV Manufacturing industry?",
+  "Describe the typical delivery process for 'perishable goods' in 'Southeast Asia'.",
+  "How does 'Agile SCM' differ from 'Lean SCM' in practice?",
 ];
 
 const loadingMessages = [
   "NexusChain AI is processing your request...",
-  "Orchestrating agents...",
-  "Demand Forecasting Agent initiated...",
-  "Procurement Agent analyzing market data...",
-  "Anomaly Detection Agent scanning for issues...",
-  "Compiling results...",
+  "Manager Agent: Analyzing query and delegating tasks...",
+  "Planning Agent: Searching for market demand data...",
+  "Sourcing Agent: Analyzing global trade reports...",
+  "Delivery Agent: Investigating logistics challenges...",
+  "Manager Agent: Compiling results and synthesizing recommendations...",
 ];
 
 export function MainPage() {
@@ -59,7 +60,7 @@ export function MainPage() {
         const nextIndex = (currentIndex + 1) % placeholders.length;
         return placeholders[nextIndex];
       });
-    }, 4000);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -70,7 +71,7 @@ export function MainPage() {
       interval = setInterval(() => {
         i = (i + 1) % loadingMessages.length;
         setLoadingMessage(loadingMessages[i]);
-      }, 2000);
+      }, 2500);
     }
     return () => clearInterval(interval);
   }, [isLoading]);
@@ -126,13 +127,13 @@ export function MainPage() {
   };
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex flex-col w-full min-h-screen">
       <PageHeader />
-      <main className="flex flex-1 flex-col items-center gap-8 p-4 md:p-8">
+      <main className="flex-grow flex flex-1 flex-col items-center gap-8 p-4 md:p-8">
         <div className="w-full max-w-3xl flex flex-col items-center text-center mt-8 md:mt-16">
           <h1 className="text-3xl md:text-5xl font-headline font-bold text-transparent bg-clip-text bg-gradient-to-br from-slate-200 to-slate-400 py-2">The Unified Supply Chain Brain</h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
-            Ask a question or set a goal. NexusChain AI will orchestrate the right agents to find the optimal solution for your supply chain.
+            Ask a question or set a goal about your product's supply chain. NexusChain AI will orchestrate the right agents to find the optimal solution.
           </p>
         </div>
         
@@ -162,7 +163,7 @@ export function MainPage() {
                   ) : (
                     <>
                       <Zap className="mr-2 h-5 w-5" />
-                      Optimize
+                      Analyze Supply Chain
                     </>
                   )}
                 </Button>
@@ -227,10 +228,8 @@ export function MainPage() {
                           agent={step.agent}
                           icon={step.icon}
                           action={step.action}
+                          thought={step.thought}
                           details={step.details}
-                          classification={step.classification}
-                          confidence={step.confidence}
-                          summary={step.summary}
                           isLast={index === (fullResult?.workflow.length ?? 0) - 1}
                       />
                   ))}
@@ -239,6 +238,7 @@ export function MainPage() {
           )}
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

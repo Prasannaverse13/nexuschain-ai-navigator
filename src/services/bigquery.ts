@@ -4,6 +4,9 @@
  * This file simulates a client that would interact with Google BigQuery.
  * In a real-world application, this file would contain the actual logic
  * to connect to BigQuery, execute queries, and return results.
+ * 
+ * While this file is currently not used by the "open-internet" focused agents,
+ * it represents the future capability of integrating with internal enterprise data.
  *
  * For this prototype, it returns hardcoded mock data to be used by the agents.
  */

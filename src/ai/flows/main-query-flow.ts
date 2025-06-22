@@ -1,28 +1,26 @@
 'use server';
 /**
- * @fileOverview A central orchestrator flow for NexusChain AI.
+ * @fileOverview The Manager Agent: A central orchestrator for NexusChain AI.
  *
- * This flow takes a high-level user query, determines the necessary agent actions,
- * orchestrates their execution by calling them as tools, and returns a comprehensive result
- * including a summary, actionable recommendations, and a detailed workflow breakdown.
+ * This flow takes a high-level user query, breaks it down, delegates tasks
+ * to specialized sub-agents (available as tools), and synthesizes their
+ * findings into a comprehensive result for the user.
  *
  * - mainQuery - The primary function that processes a user's goal.
  * - MainQueryInput - The input type for the mainQuery function.
  * - MainQueryOutput - The return type for the mainQuery function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
-import { detectAnomaly, type DetectAnomalyInput, type DetectAnomalyOutput } from './anomaly-detection';
-import { AnomalyDetectionInputSchema, AnomalyDetectionOutputSchema } from '../schemas/anomaly-detection.schema';
-import { forecastDemand, type ForecastDemandInput, type ForecastDemandOutput } from './demand-forecasting';
-import { DemandForecastingInputSchema, DemandForecastingOutputSchema } from '../schemas/demand-forecasting.schema';
-import { procurementSuggestion, type ProcurementSuggestionInput, type ProcurementSuggestionOutput } from './procurement-suggestion';
-import { ProcurementSuggestionInputSchema, ProcurementSuggestionOutputSchema } from '../schemas/procurement-suggestion.schema';
-import { planRoute, type LogisticsInput, type LogisticsOutput } from './logistics';
-import { LogisticsInputSchema, LogisticsOutputSchema } from '../schemas/logistics.schema';
+import { planningAgent } from '../agents/planning-agent';
+import { sourcingAgent } from '../agents/sourcing-agent';
+import { deliveryAgent } from '../agents/delivery-agent';
 
+import { PlanningAgentInputSchema, PlanningAgentOutputSchema } from '../schemas/planning-agent.schema';
+import { SourcingAgentInputSchema, SourcingAgentOutputSchema } from '../schemas/sourcing-agent.schema';
+import { DeliveryAgentInputSchema, DeliveryAgentOutputSchema } from '../schemas/delivery-agent.schema';
 
 // Schemas for the Main Orchestrator Flow
 const MainQueryInputSchema = z.object({
@@ -31,13 +29,14 @@ const MainQueryInputSchema = z.object({
 export type MainQueryInput = z.infer<typeof MainQueryInputSchema>;
 
 const WorkflowStepSchema = z.object({
-  agent: z.string().describe('The name of the agent that performed the action (e.g., "Demand Forecasting Agent").'),
-  icon: z.enum(['BarChartBig', 'AlertTriangle', 'ShoppingCart', 'Truck']).describe("The pre-defined Lucide icon name representing the agent."),
+  agent: z.string().describe('The name of the agent that performed the action (e.g., "Manager Agent", "Planning Agent").'),
+  icon: z.enum(['BrainCircuit', 'ClipboardList', 'Combine', 'Truck', 'Factory', 'Archive', 'ShieldAlert']).describe("The pre-defined Lucide icon name representing the agent."),
+  thought: z.string().describe("A summary of the agent's thinking process, explaining WHY it took this action."),
   action: z.string().describe("A short, past-tense summary of the agent's action and its primary result."),
-  details: z.string().describe("A more detailed explanation of the agent's findings, the data it used, or the reasoning behind its action."),
-  classification: z.string().optional().describe("For anomalies, the type of anomaly (e.g., 'Supplier-driven price increase', 'Market speculation')."),
-  confidence: z.number().optional().describe("A confidence score (0-100) for the finding, especially for forecasts or anomaly detections."),
-  summary: z.string().optional().describe("An additional summary, like a root cause analysis or cost/benefit breakdown."),
+  details: z.object({
+      searchQueriesUsed: z.array(z.string()).optional().describe("A list of search queries the agent used to find information on the open internet."),
+      keyInformationExtracted: z.array(z.string()).optional().describe("A list of key facts or data points the agent extracted from its sources."),
+  }).describe("The detailed evidence and findings from the agent's work."),
 });
 
 const RecommendationSchema = z.object({
@@ -46,55 +45,45 @@ const RecommendationSchema = z.object({
 });
 
 const MainQueryOutputSchema = z.object({
-  summary: z.string().describe("A concise, high-level summary that directly answers the user's query."),
-  recommendations: z.array(RecommendationSchema).describe("A list of key, actionable recommendations, each with a potential follow-up action."),
+  summary: z.string().describe("A concise, high-level summary that directly answers the user's query, synthesized from all agent findings."),
+  recommendations: z.array(RecommendationSchema).describe("A list of key, actionable recommendations derived from the multi-agent analysis."),
   workflow: z.array(WorkflowStepSchema).describe("The sequence of agent steps that were executed to produce the result. The sequence should be logical."),
 });
 export type MainQueryOutput = z.infer<typeof MainQueryOutputSchema>;
 
 
-// Define Agent Tools
-const anomalyDetectionTool = ai.defineTool(
+// Define Sub-Agent Tools
+const planningTool = ai.defineTool(
     {
-        name: 'detectAnomaly',
-        description: 'Monitors data streams for unusual events and anomalies. Use this to investigate potential issues like price spikes, delays, or quality problems.',
-        inputSchema: AnomalyDetectionInputSchema,
-        outputSchema: AnomalyDetectionOutputSchema
+        name: 'planningAgent',
+        description: 'Analyzes demand forecasting, production scheduling, and market trends for a product or topic. Use this for questions about planning.',
+        inputSchema: PlanningAgentInputSchema,
+        outputSchema: PlanningAgentOutputSchema
     },
-    async (input: DetectAnomalyInput) => detectAnomaly(input)
+    async (input) => planningAgent(input)
 );
 
-const demandForecastingTool = ai.defineTool(
+const sourcingTool = ai.defineTool(
     {
-        name: 'forecastDemand',
-        description: 'Analyzes historical data and market trends to predict future product demand. Retrieves data from data warehouse.',
-        inputSchema: DemandForecastingInputSchema,
-        outputSchema: DemandForecastingOutputSchema
+        name: 'sourcingAgent',
+        description: 'Researches suppliers, raw material prices, and sourcing strategies for a given material or component.',
+        inputSchema: SourcingAgentInputSchema,
+        outputSchema: SourcingAgentOutputSchema
     },
-    async (input: ForecastDemandInput) => forecastDemand(input)
+    async (input) => sourcingAgent(input)
 );
 
-const procurementSuggestionTool = ai.defineTool(
+const deliveryTool = ai.defineTool(
     {
-        name: 'procurementSuggestion',
-        description: 'Recommends optimal raw material orders based on forecasts, inventory, and supplier data.',
-        inputSchema: ProcurementSuggestionInputSchema,
-        outputSchema: ProcurementSuggestionOutputSchema
+        name: 'deliveryAgent',
+        description: 'Investigates logistics, transportation routes, and delivery challenges for a product type or region.',
+        inputSchema: DeliveryAgentInputSchema,
+        outputSchema: DeliveryAgentOutputSchema
     },
-    async (input: ProcurementSuggestionInput) => procurementSuggestion(input)
+    async (input) => deliveryAgent(input)
 );
 
-const logisticsTool = ai.defineTool(
-    {
-        name: 'planRoute',
-        description: 'Plans an optimal delivery route for a shipment, considering factors like weather and traffic.',
-        inputSchema: LogisticsInputSchema,
-        outputSchema: LogisticsOutputSchema
-    },
-    async (input: LogisticsInput) => planRoute(input)
-);
-
-const allTools = [anomalyDetectionTool, demandForecastingTool, procurementSuggestionTool, logisticsTool];
+const allTools = [planningTool, sourcingTool, deliveryTool];
 
 // Main Orchestrator Flow
 export async function mainQuery(input: MainQueryInput): Promise<MainQueryOutput> {
@@ -109,25 +98,22 @@ const mainQueryFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await ai.generate({
-        prompt: `You are NexusChain AI, the master orchestrator of a team of specialized AI agents. Your primary purpose is to understand a user's supply chain goal, devise a multi-step plan, and execute that plan by calling your agents (available as tools) in a logical sequence. You must think like a project manager, showing your work.
+        prompt: `You are the Manager Agent for NexusChain AI, a sophisticated multi-agent supply chain analysis system. Your primary purpose is to understand a user's high-level goal, break it down into specialized tasks, delegate those tasks to your sub-agents (available as tools), and then synthesize their findings into a coherent, actionable report for the user.
 
         User Query: "${input.query}"
         
         Your task is to respond to this query by performing the following process:
-        1.  **Deconstruct the Goal:** Analyze the user's query to determine the sequence of tasks required. A complex query like "How will a price spike affect my Q3 orders?" requires multiple steps: first confirm the spike (anomaly detection), then predict its impact on demand (forecasting), and finally suggest new orders (procurement).
-        2.  **Execute the Plan:** Call the agent tools one by one, in the logical order you decided.
-        3.  **Show Your Work:** As you execute the plan, you will generate a final JSON output. The most important part is the \`workflow\` field. For each step in your plan, you must create a workflow object that makes your thinking process transparent.
-            *   **action**: Clearly state what the agent did.
-            *   **details**: This is the most critical field. You MUST explain:
-                *   **WHY** you are taking this step. (e.g., "To confirm the price increase mentioned in the query, I initiated the Anomaly Detection Agent.")
-                *   **WHAT** the agent found. (e.g., "The agent confirmed a 15% price increase over the last 7 days, classifying it as market speculation with 95% confidence.")
-                *   **HOW** this result informs the next step. (e.g., "This confirmed anomaly and its details are now being passed to the Demand Forecasting Agent to assess the impact on sales.")
-        4.  **Synthesize and Recommend:** After all steps are complete, create a high-level \`summary\` of the final outcome and a list of actionable \`recommendations\`.
+        1.  **Deconstruct the Goal:** Analyze the user's query to determine which aspects of the supply chain (Planning, Sourcing, Delivery, etc.) are relevant.
+        2.  **Formulate a Plan & Delegate:** Create a step-by-step plan. For each step, determine the appropriate sub-agent to call. Before calling, articulate your **thought** process for why you are choosing that agent.
+        3.  **Execute & Show Your Work:** Call the sub-agent tools one by one. As you get results, you will generate a final JSON output. The most important part is the \`workflow\` field. For each step in your plan (including your own analysis), you must create a workflow object.
+            *   **agent**: Your name is "Manager Agent". For sub-agents, use their proper names: "Planning Agent", "Sourcing Agent", "Delivery Agent".
+            *   **icon**: Use 'BrainCircuit' for yourself. For sub-agents, use 'ClipboardList' for the Planning Agent, 'Combine' for the Sourcing Agent, and 'Truck' for the Delivery Agent.
+            *   **thought**: THIS IS CRITICAL. Explain **WHY** you are taking this step. (e.g., "The user is asking about sourcing strategies, so I need to engage the Sourcing Agent to investigate material suppliers.")
+            *   **action**: Clearly state what the agent did. (e.g., "Delegated the task of finding lithium battery suppliers to the Sourcing Agent.")
+            *   **details**: For sub-agents, populate this with the information they return, including their search queries and findings. For your own steps, you can provide a summary of your reasoning.
+        4.  **Synthesize and Recommend:** After all sub-agents have run, create a high-level \`summary\` of the final outcome that directly answers the user's query and a list of actionable \`recommendations\`.
         
-        **Example of a good 'details' field for a forecasting step:**
-        "Following the confirmed price anomaly, I initiated the Demand Forecasting agent. **WHY:** To predict how the 15% price increase will affect Q3 sales of Product-X. **WHAT:** The agent analyzed historical sales data from BigQuery and market elasticity models, forecasting a 5% decrease in demand. **HOW:** This forecast of 95,000 units (down from 100,000) is now being passed to the Procurement Agent to adjust raw material orders."
-        
-        Your final output must be a single JSON object adhering to the schema. The \`workflow\` you build is the story of how the agents collaborated to solve the user's problem. You MUST use the correct icon for each agent: 'AlertTriangle' for detectAnomaly, 'BarChartBig' for forecastDemand, 'ShoppingCart' for procurementSuggestion, and 'Truck' for planRoute.`,
+        Your final output must be a single JSON object adhering to the schema. The \`workflow\` you build is the story of how you and your agents collaborated to solve the user's problem.`,
         tools: allTools,
         output: {
             schema: MainQueryOutputSchema,

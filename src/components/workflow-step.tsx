@@ -1,31 +1,37 @@
 "use client";
 
-import { BarChartBig, AlertTriangle, ShoppingCart, Truck, Loader2 } from 'lucide-react';
+import { BrainCircuit, ClipboardList, Combine, Truck, Factory, Archive, ShieldAlert, Loader2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+
+type Details = {
+  searchQueriesUsed?: string[];
+  keyInformationExtracted?: string[];
+};
 
 interface WorkflowStepProps {
   icon: string;
   agent: string;
   action: string;
-  details: string;
-  classification?: string;
-  confidence?: number;
-  summary?: string;
+  thought: string;
+  details: Details;
   isLast?: boolean;
 }
 
 const iconMap: { [key: string]: React.ElementType } = {
-  BarChartBig,
-  AlertTriangle,
-  ShoppingCart,
+  BrainCircuit,
+  ClipboardList,
+  Combine,
   Truck,
+  Factory,
+  Archive,
+  ShieldAlert,
   Default: Loader2,
 };
 
-export function WorkflowStep({ icon, agent, action, details, classification, confidence, summary, isLast = false }: WorkflowStepProps) {
+export function WorkflowStep({ icon, agent, action, thought, details, isLast = false }: WorkflowStepProps) {
   const IconComponent = iconMap[icon] || iconMap.Default;
+  const hasDetails = details.searchQueriesUsed?.length || details.keyInformationExtracted?.length;
 
   return (
     <div className="relative pl-12 pb-8">
@@ -49,28 +55,26 @@ export function WorkflowStep({ icon, agent, action, details, classification, con
                     <AccordionContent className="px-4 pb-4">
                         <div className="p-4 bg-black/20 rounded-lg border border-slate-700 space-y-4">
                             <div>
-                                <h4 className="font-semibold text-sm mb-1 text-slate-300">Details</h4>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{details}</p>
+                                <h4 className="font-semibold text-sm mb-1 text-slate-300">Thought Process</h4>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{thought}</p>
                             </div>
-                            {classification && (
+                            
+                            {hasDetails && <div className="border-t border-slate-600 my-2" />}
+
+                            {details.searchQueriesUsed && details.searchQueriesUsed.length > 0 && (
                                 <div>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-300">Classification</h4>
-                                    <p className="text-sm text-muted-foreground">{classification}</p>
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-300">Search Queries Used</h4>
+                                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                                      {details.searchQueriesUsed.map((query, i) => <li key={i}>{query}</li>)}
+                                    </ul>
                                 </div>
                             )}
-                            {confidence !== undefined && (
+                            {details.keyInformationExtracted && details.keyInformationExtracted.length > 0 && (
                                 <div>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-300">Confidence</h4>
-                                    <div className="flex items-center gap-2">
-                                        <Progress value={confidence} className="w-1/2 bg-slate-700" />
-                                        <span className="text-sm text-muted-foreground font-mono">{confidence}%</span>
-                                    </div>
-                                </div>
-                            )}
-                            {summary && (
-                                <div>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-300">Analysis Summary</h4>
-                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{summary}</p>
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-300">Key Information Extracted</h4>
+                                     <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                                      {details.keyInformationExtracted.map((info, i) => <li key={i}>{info}</li>)}
+                                    </ul>
                                 </div>
                             )}
                         </div>
