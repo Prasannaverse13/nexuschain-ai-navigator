@@ -5,38 +5,29 @@ NexusChain AI Navigator is an advanced, multi-agent AI system designed to analyz
 
 This project is built using **Next.js**, **React**, and **Tailwind CSS** for the frontend, with a powerful backend powered by Google's **Genkit** and AI models.
 
-## How to Run
+We have also leveraged the **Agent Development Kit (ADK)** in this project to facilitate the creation and orchestration of our multi-agent system.
 
-1.  **Start the Next.js Frontend:**
-    Run the development server on port 9002.
-    ```bash
-    npm run dev
-    ```
+## How NexusChain AI Navigator Works
 
-2.  **Start the AI Backend (Genkit):**
-    In a separate terminal, run the Genkit development server.
-    ```bash
-    npm run genkit:watch
-    ```
+The application follows a sophisticated orchestration pattern powered by a multi-agent backend. Here's a breakdown of the end-to-end process, from user query to final report.
 
-## Google Cloud Project
+1.  **User Initiates Query**: The user enters a high-level supply chain goal into the frontend (e.g., "Analyze the sourcing challenges for lithium batteries").
 
-This application is configured to integrate with the following Google Cloud project:
+2.  **Manager Agent Invocation**: The frontend calls the `mainQuery` flow located in `src/ai/flows/main-query-flow.ts`. This flow acts as the entry point to the **Manager Agent**, which is the central orchestrator of the system.
 
--   **Project Name**: My First Project
--   **Project ID**: `active-tangent-463604-p9`
--   **Project Number**: `639287041239`
+3.  **AI-Powered Planning & Tool Selection**: The Manager Agent is not just a simple script; it's a powerful AI prompt given a complex goal and a set of **tools**. Each specialist agent (Sourcing, Manufacturing, etc.) is defined as a tool that the Manager can choose to use. The Manager Agent analyzes the user's query and autonomously decides:
+    *   **What is the plan?** It breaks down the high-level goal into smaller, logical steps.
+    *   **Which agents are needed?** It determines which specialist agents (tools) are required to execute the plan.
+    *   **In what order?** It calls the agents in a sequence that makes sense. For a query on "sourcing challenges," it would naturally call the `sourcingAgent` tool first.
 
-## How NexusChain AI Works
+4.  **Sequential Task Delegation & Execution**: The Manager Agent executes its plan by calling the selected agent tools one by one.
+    *   The `sourcingAgent` is called to research suppliers and pricing.
+    *   The `manufacturingAgent` is called to investigate production complexities.
+    *   This continues for all relevant agents, each performing its focused analysis and returning its findings.
 
-The application follows a sophisticated orchestration pattern:
+5.  **Synthesis and Final Report Generation**: As the specialist agents return their findings, the information is collected by the Manager Agent. Once its plan is complete, its final instruction is to synthesize all the gathered data into a single, structured report, adhering to a predefined JSON schema.
 
-1.  **User Query**: The user enters a high-level supply chain goal (e.g., "Analyze the sourcing challenges for lithium batteries").
-2.  **Manager Agent Orchestration**: A central **Manager Agent** receives the query. It formulates a plan and determines which specialized sub-agents are needed to address the query.
-3.  **Task Delegation**: The Manager Agent calls upon its team of specialist agents (e.g., Sourcing Agent, Manufacturing Agent) in a logical sequence, providing them with the specific tasks they need to perform.
-4.  **Agent Execution**: Each specialist agent performs its analysis by generating simulated search queries and extracting key findings, mimicking real-world research.
-5.  **Synthesis and Reporting**: The agents return their findings to the Manager Agent. The Manager Agent then synthesizes all the collected information into a single, structured, and comprehensive report for the user.
-6.  **Display & Download**: The final report is displayed in the UI, and the user has the option to download it as a PDF.
+6.  **Display & Download**: The final report object is sent back to the frontend, where it's rendered in a user-friendly format. The user can then download this comprehensive report as a PDF for offline viewing and sharing.
 
 ## The Multi-Agent System (ADK Implementation)
 
@@ -65,6 +56,7 @@ Each specialist agent is a Genkit tool with a specific area of expertise. They a
 ## Google Cloud & AI Ecosystem Integration
 
 The application is built to leverage the Google Cloud ecosystem for robust, scalable AI functionality.
+The application is built to leverage the **Google Cloud AI** ecosystem for robust, scalable AI functionality.
 
 ### Vertex AI & Google AI
 
@@ -74,6 +66,21 @@ The application uses Genkit's plugins to connect to Google's powerful AI models.
 -   **Implementation Details**:
     -   The `vertexAI` plugin is imported and configured, demonstrating the project's readiness to connect directly to a specific Google Cloud project's AI infrastructure.
     -   To ensure maximum reliability for the demo, the default model is set to `googleai/gemini-2.0-flash` using the `googleAI` plugin with the `v1beta` API, which has proven to be stable.
+
+
+## How to Run
+
+1.  **Start the Next.js Frontend:**
+    Run the development server on port 9002.
+    ```bash
+    npm run dev
+    ```
+
+2.  **Start the AI Backend (Genkit):**
+    In a separate terminal, run the Genkit development server.
+    ```bash
+    npm run genkit:watch
+    ```    
 
 ### BigQuery Integration
 
