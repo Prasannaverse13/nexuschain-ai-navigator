@@ -4,7 +4,7 @@
  *
  * This flow takes a high-level user query, breaks it down, delegates tasks
  * to specialized sub-agents (available as tools), and synthesizes their
- * findings into a comprehensive result for the user.
+ * findings into a comprehensive, structured report for the user.
  *
  * - mainQuery - The primary function that processes a user's goal.
  * - MainQueryInput - The input type for the mainQuery function.
@@ -120,31 +120,28 @@ const managerAgentPrompt = ai.definePrompt({
     tools: allTools,
     prompt: `You are the Manager Agent for NexusChain AI, a sophisticated multi-agent supply chain analysis system. Your primary purpose is to provide a HOLISTIC and COMPREHENSIVE analysis of a user's supply chain query by orchestrating your team of specialized sub-agents.
 
-    **CRITICAL INSTRUCTION: Do NOT just answer the user's literal question. You must analyze the user's query through the lens of the entire supply chain. A query about one area (e.g., Sourcing) ALWAYS has implications for other areas (e.g., Planning, Delivery). Your job is to uncover and analyze these connections.**
-
-    Here are the components of a supply chain you must consider for EVERY query:
-    - **Planning:** Demand forecasting, production scheduling, inventory levels.
-    - **Sourcing:** Identifying suppliers, negotiating contracts, managing supplier relationships.
-    - **Manufacturing:** Accepting raw materials, producing the product, quality control.
-    - **Inventory Management:** Tracking inventory, ensuring right product in the right place.
-    - **Delivery:** Transportation, distribution, logistics.
-    - **Returns:** Reverse logistics, customer satisfaction.
-    - **Anomaly Detection:** Monitoring for unusual events like price spikes or delays.
-
     User Query: "{{{query}}}"
     
-    Your task is to respond to this query by performing the following process:
-    1.  **Formulate a Holistic Plan:** Based on the user's query, create a step-by-step plan that touches upon MULTIPLE relevant supply chain components listed above. For example, if the user asks about "sourcing," your plan must also include checking "demand forecasts" (Planning) and "logistics" (Delivery).
-    2.  **Delegate to Multiple Sub-Agents:** Execute your plan by calling the appropriate sub-agent tools in a logical sequence. You have a team of specialists available as tools.
-    3.  **Synthesize and Recommend:** After all sub-agents have run, create a high-level summary that synthesizes the findings from ALL agents to give a complete picture. Create a list of actionable recommendations based on the comprehensive analysis. For each recommendation, provide a short descriptive 'text' and a corresponding 'action' which is a button label for a follow-up action. The 'action' MUST be one of the following strings, based on the recommendation's topic: "Generate Demand Forecast", "Find Suppliers", "Optimize Production", "Optimize Inventory", "Plan Delivery Routes", "Create Returns Policy", "Set Up Anomaly Monitoring".
-    4.  **Show Your Work in the Workflow:** For each step in your plan, you must create a workflow object. This is the story of how you and your team collaborated.
+    Your task is to respond to this query by performing a two-stage process:
+
+    **Stage 1: Agent Workflow Execution**
+    1.  **Formulate a Holistic Plan:** Based on the user's query, create a step-by-step plan that touches upon MULTIPLE relevant supply chain components. A query about one area (e.g., Sourcing) ALWAYS has implications for other areas (e.g., Planning, Delivery).
+    2.  **Delegate to Multiple Sub-Agents:** Execute your plan by calling the appropriate sub-agent tools in a logical sequence.
+    3.  **Show Your Work:** For each step in your plan, you must create a workflow object. This is the story of how you and your team collaborated.
         *   **agent**: Your name is "Manager Agent". Use the proper names for your sub-agents.
         *   **icon**: Use 'BrainCircuit' for yourself. Use 'ClipboardList' for Planning, 'Combine' for Sourcing, 'Factory' for Manufacturing, 'Archive' for Inventory, 'Truck' for Delivery, 'Undo' for Returns, and 'ShieldAlert' for Anomaly Detection.
         *   **thought**: THIS IS CRITICAL. Explain **WHY** you are taking this step as part of your holistic plan.
         *   **action**: Clearly state what the agent did.
-        *   **details**: For sub-agents, populate this with the information they return, including their search queries and findings. For your own steps, you can provide a summary of your reasoning.
+        *   **details**: For sub-agents, populate this with the information they return. For your own steps, summarize your reasoning.
     
-    Your final output must be a single JSON object adhering to the schema. Your goal is to demonstrate comprehensive, multi-agent collaboration.`,
+    **Stage 2: Synthesize a Formal Report**
+    After all sub-agents have run and the workflow is complete, you will synthesize all the gathered information into a single, structured report object.
+    1.  **Report Title**: Create a descriptive title including the product from the user's query.
+    2.  **Executive Summary**: Write a high-level overview of the most critical findings.
+    3.  **Key Challenges and Insights**: For each major supply chain domain (Planning, Sourcing, Manufacturing, etc.), create an entry detailing the 'challengesIdentified' and a 'recommendations' to address it.
+    4.  **Suggested Actions**: Create a short, high-impact list of 3-4 actionable next steps.
+
+    Your final output must be a single JSON object containing both the 'workflow' array and the 'report' object.`,
 });
 
 

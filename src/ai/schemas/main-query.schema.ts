@@ -17,14 +17,21 @@ const WorkflowStepSchema = z.object({
   }).describe("The detailed evidence and findings from the agent's work."),
 });
 
-const RecommendationSchema = z.object({
-    text: z.string().describe("The actionable recommendation text."),
-    action: z.string().optional().describe("A suggested button label for a follow-up action, e.g., 'Generate Demand Forecast', 'Find Suppliers'.")
+const ReportChallengeSchema = z.object({
+    domain: z.string().describe("The supply chain domain (e.g., 'Planning', 'Sourcing')."),
+    challengesIdentified: z.string().describe("A concise description of the key challenge found in this domain."),
+    recommendations: z.string().describe("A high-level recommendation to address the challenge.")
+});
+
+const ReportSchema = z.object({
+    reportTitle: z.string().describe("A descriptive title for the report, e.g., 'Supply Chain Analysis Report: [Product]'. Mention the product from the user query."),
+    executiveSummary: z.string().describe("A high-level overview of the most critical findings across all supply chain components, highlighting the major bottlenecks and areas of concern."),
+    keyChallengesAndInsights: z.array(ReportChallengeSchema).describe("A table-like structure of key challenges and recommendations for each supply chain domain."),
+    suggestedActions: z.array(z.string()).describe("A short list of 3-4 high-impact, actionable next steps."),
 });
 
 export const MainQueryOutputSchema = z.object({
-  summary: z.string().describe("A concise, high-level summary that directly answers the user's query, synthesized from all agent findings."),
-  recommendations: z.array(RecommendationSchema).describe("A list of key, actionable recommendations derived from the multi-agent analysis."),
-  workflow: z.array(WorkflowStepSchema).describe("The sequence of agent steps that were executed to produce the result. The sequence should be logical."),
+  workflow: z.array(WorkflowStepSchema).describe("The sequence of agent steps that were executed to produce the result. This should be generated first."),
+  report: ReportSchema.describe("The final, structured report synthesized from all agent findings. This should be generated after the workflow."),
 });
 export type MainQueryOutput = z.infer<typeof MainQueryOutputSchema>;

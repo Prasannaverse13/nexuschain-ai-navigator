@@ -9,9 +9,10 @@ import { mainQuery, type MainQueryOutput } from '@/ai/flows/main-query-flow';
 import { PageHeader } from '@/components/page-header';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Zap, RefreshCcw } from 'lucide-react';
 import { WorkflowStep } from './workflow-step';
+import { ReportDisplay } from './report-display';
 import type { MainQueryInput } from '@/ai/flows/main-query-flow';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from './footer';
@@ -33,7 +34,7 @@ const loadingMessages = [
   "Planning Agent: Searching for market demand data...",
   "Sourcing Agent: Analyzing global trade reports...",
   "Delivery Agent: Investigating logistics challenges...",
-  "Manager Agent: Compiling results and synthesizing recommendations...",
+  "Manager Agent: Compiling results and synthesizing the final report...",
 ];
 
 export function MainPage() {
@@ -44,9 +45,7 @@ export function MainPage() {
   
   const [fullResult, setFullResult] = useState<MainQueryOutput | null>(null);
   const [displayedWorkflow, setDisplayedWorkflow] = useState<MainQueryOutput['workflow']>([]);
-  const [finalSummary, setFinalSummary] = useState<MainQueryOutput | null>(null);
-  const [originalQuery, setOriginalQuery] = useState('');
-
+  const [finalReport, setFinalReport] = useState<MainQueryOutput['report'] | null>(null);
 
   const resultsRef = useRef<HTMLDivElement>(null);
   
@@ -81,15 +80,16 @@ export function MainPage() {
   useEffect(() => {
     if (fullResult) {
       setDisplayedWorkflow([]);
-      setFinalSummary(null);
+      setFinalReport(null);
 
       // Animate workflow steps
       fullResult.workflow.forEach((step, index) => {
         setTimeout(() => {
           setDisplayedWorkflow(prev => [...prev, step]);
+          // After the last workflow step, show the report
           if (index === fullResult.workflow.length - 1) {
             setTimeout(() => {
-              setFinalSummary(fullResult);
+              setFinalReport(fullResult.report);
               resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 750);
           }
@@ -103,9 +103,8 @@ export function MainPage() {
     setIsLoading(true);
     setFullResult(null);
     setDisplayedWorkflow([]);
-    setFinalSummary(null);
+    setFinalReport(null);
     setLoadingMessage(loadingMessages[0]);
-    setOriginalQuery(values.query);
     
     try {
       const response = await mainQuery(values as MainQueryInput);
@@ -126,8 +125,7 @@ export function MainPage() {
     form.reset({ query: '' });
     setFullResult(null);
     setDisplayedWorkflow([]);
-    setFinalSummary(null);
-    setOriginalQuery('');
+    setFinalReport(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -153,7 +151,7 @@ export function MainPage() {
               />
               <div className="flex justify-between items-center">
                 <div className="flex-1">
-                  {fullResult && !isLoading && (
+                  {(fullResult || finalReport) && !isLoading && (
                     <Button variant="ghost" onClick={handleNewQuery}>
                       <RefreshCcw className="mr-2 h-4 w-4" /> New Query
                     </Button>
@@ -185,19 +183,6 @@ export function MainPage() {
             </div>
           )}
 
-          {finalSummary && (
-            <div className="animate-in fade-in-0 duration-500 space-y-8">
-               <Card className="bg-secondary/40 backdrop-blur-xl border border-border/30 shadow-2xl rounded-2xl">
-                <CardHeader>
-                  <CardTitle className="text-xl font-headline text-slate-100">Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-base text-slate-300">{finalSummary.summary}</p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
           {displayedWorkflow.length > 0 && (
             <div className="animate-in fade-in-0 duration-500">
               <h2 className="text-2xl font-headline font-semibold mb-4 ml-2 text-slate-100">Agent Workflow</h2>
@@ -216,6 +201,13 @@ export function MainPage() {
               </div>
             </div>
           )}
+
+          {finalReport && (
+             <div className="animate-in fade-in-0 duration-500">
+               <ReportDisplay report={finalReport} />
+             </div>
+          )}
+
         </div>
       </main>
       <Footer />
