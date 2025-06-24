@@ -1,6 +1,8 @@
 'use server';
 /**
  * @fileOverview The Returns Agent, specializing in reverse logistics and customer returns.
+ * This file is an example of a "Specialist Agent" in the Agent Development Kit (ADK) pattern.
+ * It is designed to be called as a tool by an orchestrator agent.
  */
 import { ai } from '@/ai/genkit';
 import { ReturnsAgentOutputSchema, type ReturnsAgentInput, type ReturnsAgentOutput } from '../schemas/returns-agent.schema';

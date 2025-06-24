@@ -6,6 +6,9 @@
  * to specialized sub-agents (available as tools), and synthesizes their
  * findings into a comprehensive, structured report for the user.
  *
+ * This is a core implementation of the Agent Development Kit (ADK) pattern,
+ * where this "manager" agent uses other specialized agents as tools.
+ *
  * - mainQuery - The primary function that processes a user's goal.
  * - MainQueryInput - The input type for the mainQuery function.
  * - MainQueryOutput - The return type for the mainQuery function.

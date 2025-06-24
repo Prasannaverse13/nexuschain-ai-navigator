@@ -1,6 +1,8 @@
 'use server';
 /**
  * @fileOverview The Sourcing Agent, specializing in identifying suppliers and raw material pricing using open internet data.
+ * This file is an example of a "Specialist Agent" in the Agent Development Kit (ADK) pattern.
+ * It is designed to be called as a tool by an orchestrator agent.
  */
 import {ai} from '@/ai/genkit';
 import { SourcingAgentOutputSchema, type SourcingAgentInput, type SourcingAgentOutput } from '../schemas/sourcing-agent.schema';

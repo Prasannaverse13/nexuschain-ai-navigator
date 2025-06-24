@@ -1,6 +1,8 @@
 'use server';
 /**
  * @fileOverview The Delivery Agent, specializing in logistics and transportation analysis using open internet data.
+ * This file is an example of a "Specialist Agent" in the Agent Development Kit (ADK) pattern.
+ * It is designed to be called as a tool by an orchestrator agent.
  */
 import {ai} from '@/ai/genkit';
 import { DeliveryAgentOutputSchema, type DeliveryAgentInput, type DeliveryAgentOutput } from '../schemas/delivery-agent.schema';

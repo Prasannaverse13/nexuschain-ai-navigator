@@ -1,6 +1,8 @@
 'use server';
 /**
  * @fileOverview The Anomaly Detection Agent, specializing in identifying unusual events in data streams.
+ * This file is an example of a "Specialist Agent" in the Agent Development Kit (ADK) pattern.
+ * It is designed to be called as a tool by an orchestrator agent.
  */
 import { ai } from '@/ai/genkit';
 import { AnomalyDetectionAgentOutputSchema, type AnomalyDetectionAgentInput, type AnomalyDetectionAgentOutput } from '../schemas/anomaly-detection-agent.schema';
