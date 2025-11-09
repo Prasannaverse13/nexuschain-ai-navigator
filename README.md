@@ -1,11 +1,29 @@
 
 # NexusChain AI Navigator
 
-NexusChain AI Navigator is an advanced, multi-agent AI system designed to analyze and provide comprehensive insights into complex supply chain queries. It serves as a "Unified Supply Chain Brain," orchestrating specialized AI agents to break down a high-level goal, gather information, and synthesize a holistic report.
+NexusChain AI Navigator is an innovative serverless multi-agent AI system deployed on Google Cloud Run, designed to revolutionize supply chain analytics. It serves as a "Unified Supply Chain Brain," leveraging Google's Agent Development Kit (ADK) to orchestrate specialized AI agents that break down complex supply chain queries into actionable insights.
 
-This project is built using **Next.js**, **React**, and **Tailwind CSS** for the frontend, with a powerful backend powered by Google's **Genkit** and AI models.
+## Project Overview
 
-We have also leveraged the **Agent Development Kit (ADK)** in this project to facilitate the creation and orchestration of our multi-agent system.
+This project is built using a modern, cloud-native stack:
+- **Frontend**: Next.js, React, and Tailwind CSS for a responsive and intuitive user interface
+- **Backend**: Serverless architecture powered by Google Cloud Run
+- **AI Engine**: Google's Agent Development Kit (ADK) and Genkit for sophisticated multi-agent orchestration
+- **Infrastructure**: Fully integrated with Google Cloud services including BigQuery, Cloud Storage, and GPU computing
+
+### Cloud Run Implementation
+Our application is deployed as a serverless solution on Google Cloud Run, providing scalability and reliability:
+
+- **API Services**: `/src/app/api/*` - RESTful endpoints deployed as Cloud Run services
+- **Agent Workers**: `/src/ai/agents/*` - Each agent runs as a separate Cloud Run job
+- **Main Orchestrator**: `/src/ai/flows/main-query-flow.ts` - Deployed as a Cloud Run service
+- **Region**: europe-west4 for GPU workloads using NVIDIA L4 GPUs
+
+### Why Google Cloud Run?
+- **Scalability**: Automatic scaling based on demand
+- **Cost-effectiveness**: Pay only for actual compute time
+- **GPU Support**: Access to NVIDIA L4 GPUs for ML model inference
+- **Zero Maintenance**: Fully managed infrastructure
 
 ## How NexusChain AI Navigator Works
 
@@ -58,29 +76,124 @@ Each specialist agent is a Genkit tool with a specific area of expertise. They a
 The application is built to leverage the Google Cloud ecosystem for robust, scalable AI functionality.
 The application is built to leverage the **Google Cloud AI** ecosystem for robust, scalable AI functionality.
 
-### Vertex AI & Google AI
+## System Architecture
 
-The application uses Genkit's plugins to connect to Google's powerful AI models. The configuration is designed to be "Vertex AI ready" while ensuring stability for the demo by using the Google AI endpoint.
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Client Browser                          │
+└───────────────────────────┬─────────────────────────────────┘
+                           │
+┌───────────────────────────┴─────────────────────────────────┐
+│                    Cloud Run Frontend                       │
+│           (Next.js + React + Tailwind CSS)                 │
+└───────────────────────────┬─────────────────────────────────┘
+                           │
+┌───────────────────────────┴─────────────────────────────────┐
+│                Manager Agent (Orchestrator)                 │
+│              Cloud Run Service with ADK/Genkit             │
+└─┬─────────────┬──────────────┬──────────────┬──────────────┘
+  │             │              │              │
+  ▼             ▼              ▼              ▼
+┌──────┐    ┌──────┐     ┌──────────┐   ┌──────────┐
+│Agent1│    │Agent2│     │  Agent3  │   │  Agent4  │
+│Job   │    │Job   │     │   Job    │   │   Job    │
+└──┬───┘    └──┬───┘     └────┬─────┘   └────┬─────┘
+   │           │              │              │
+   └───────────┴──────────────┴──────────────┘
+                           │
+┌───────────────────────────┴─────────────────────────────────┐
+│                   Google Cloud Services                      │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌──────────────┐   │
+│  │BigQuery │  │ Cloud   │  │Vertex AI│  │NVIDIA L4 GPUs│   │
+│  │Analytics│  │Storage  │  │Models   │  │(Cloud Run)   │   │
+│  └─────────┘  └─────────┘  └─────────┘  └──────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
 
--   **File Location**: The Genkit configuration is in `src/ai/genkit.ts`.
--   **Implementation Details**:
-    -   The `vertexAI` plugin is imported and configured, demonstrating the project's readiness to connect directly to a specific Google Cloud project's AI infrastructure.
-    -   To ensure maximum reliability for the demo, the default model is set to `googleai/gemini-2.0-flash` using the `googleAI` plugin with the `v1beta` API, which has proven to be stable.
+### Architecture Components
+
+1. **Frontend Layer**
+   - Deployed on Cloud Run
+   - Handles user interactions and report visualization
+   - Located in `/src/app/` and `/src/components/`
+
+2. **Orchestration Layer**
+   - Manager Agent running on Cloud Run
+   - Coordinates all specialist agents
+   - Implements ADK patterns
+   - Located in `/src/ai/flows/main-query-flow.ts`
+
+3. **Agent Layer**
+   - Each agent runs as a separate Cloud Run job
+   - Specialized for specific supply chain functions
+   - All agents in `/src/ai/agents/`
+
+4. **Data & ML Layer**
+   - BigQuery for data analytics
+   - Cloud Storage for object storage
+   - NVIDIA L4 GPUs for ML inference
+   - Services configured in `/src/services/`
+
+### Google AI Integration
+
+The application leverages Google's powerful AI infrastructure:
+
+- **File Location**: Configuration in `src/ai/genkit.ts`
+- **Implementation Details**:
+  - Uses Vertex AI for production workloads
+  - Integrates Gemini 2.0 models via `googleai/gemini-2.0-flash`
+  - ADK-compliant agent implementation
+  - GPU-accelerated inference using NVIDIA L4
 
 
-## How to Run
+## Deployment and Development
 
-1.  **Start the Next.js Frontend:**
-    Run the development server on port 9002.
-    ```bash
-    npm run dev
-    ```
+### Local Development
+1. **Start the Next.js Frontend:**
+   ```bash
+   npm run dev
+   ```
 
-2.  **Start the AI Backend (Genkit):**
-    In a separate terminal, run the Genkit development server.
-    ```bash
-    npm run genkit:watch
-    ```    
+2. **Start the AI Backend (Genkit):**
+   ```bash
+   npm run genkit:watch
+   ```
+
+### Cloud Run Deployment
+1. **Build and Deploy Frontend:**
+   ```bash
+   gcloud run deploy nexuschain-frontend \
+     --source . \
+     --region europe-west4 \
+     --platform managed
+   ```
+
+2. **Deploy Agent Services:**
+   ```bash
+   # Deploy manager agent
+   gcloud run deploy manager-agent \
+     --source ./src/ai/flows \
+     --region europe-west4 \
+     --platform managed
+
+   # Deploy specialist agents
+   for agent in sourcing manufacturing inventory delivery
+   do
+     gcloud run deploy $agent-agent \
+       --source ./src/ai/agents/$agent-agent \
+       --region europe-west4 \
+       --platform managed
+   done
+   ```
+
+3. **Configure GPU Workloads:**
+   ```bash
+   gcloud run deploy ml-inference \
+     --source . \
+     --region europe-west4 \
+     --platform managed \
+     --accelerator count=1,type=nvidia-l4
+   ```
 
 ### BigQuery Integration
 
