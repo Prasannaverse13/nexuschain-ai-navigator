@@ -380,15 +380,16 @@ gcloud iam service-accounts create nexuschain-sa \
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:nexuschain-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
   --role="roles/cloudrun.invoker"
+```
 
-### BigQuery Integration
+
+# BigQuery Integration
 
 The application is architected to integrate with enterprise-level data stored in BigQuery, allowing it to move from open-internet simulation to highly precise, company-specific analysis.
 
 -   **File Location**: `src/services/bigquery.ts`
 -   **Implementation Details**:
     -   This service file contains a mock function (`getHistoricalSalesData`) that simulates fetching data from a BigQuery table. In a production environment, this file would contain the actual client logic to query live sales, inventory, or ERP data.
-
 
 ## Thank You
 
