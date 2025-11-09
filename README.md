@@ -3,6 +3,8 @@
 
 NexusChain AI Navigator is an innovative serverless multi-agent AI system deployed on Google Cloud Run, designed to revolutionize supply chain analytics. It serves as a "Unified Supply Chain Brain," leveraging Google's Agent Development Kit (ADK) to orchestrate specialized AI agents that break down complex supply chain queries into actionable insights.
 
+Built with Google AI Studio — this project used Google AI Studio for prompt-generation, rapid prototyping, and deployment assistance. A portion of the application's prompts iterated in AI Studio and deployed to Cloud Run
+
 ## Project Overview
 
 This project is built using a modern, cloud-native stack:
