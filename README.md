@@ -25,6 +25,8 @@ Our application is deployed as a serverless solution on Google Cloud Run, provid
 - **GPU Support**: Access to NVIDIA L4 GPUs for ML model inference
 - **Zero Maintenance**: Fully managed infrastructure
 
+<img width="1920" height="925" alt="Screenshot (1483)" src="https://github.com/user-attachments/assets/0b5ba6c8-a2ae-431c-bc5b-8291112ac090" />
+
 ## How NexusChain AI Navigator Works
 
 The application follows a sophisticated orchestration pattern powered by a multi-agent backend. Here's a breakdown of the end-to-end process, from user query to final report.
